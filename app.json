@@ -4,6 +4,7 @@
       [
         "@react-native-tvos/config-tv",
         {
+          "isTV": true,
           "androidTVBanner": "./assets/images/icon-400x240.png",
           "appleTVImages": {
             "icon": "./assets/images/icon-1280x768.png",
@@ -27,6 +28,9 @@
       "splash": {
         "image": "./assets/images/icon-1920x720.png"
       }
+    },
+    "web": {
+      "icon": "./assets/images/icon-400x240.png"
     },
     "newArchEnabled": true,
     "name": "SocialRooms",
