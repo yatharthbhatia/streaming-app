@@ -5,7 +5,9 @@ export default function HomeScreen({ navigation }) {
   const [roomCode, setRoomCode] = useState('');
 
   const createRoom = async () => {
-    const res = await fetch('http://localhost:3000/room', { method: 'POST' });
+    
+    const res = await fetch(`${process.env.API_URL}/room`, { method: 'POST' });
+    console.log('Room creation response:', await res.clone().json());
     const data = await res.json();
     navigation.navigate('Room', { roomCode: data.roomCode });
   };

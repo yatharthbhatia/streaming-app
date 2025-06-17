@@ -1,5 +1,14 @@
-// socket.io-client to connect to backend
-// Example:
-// import { io } from 'socket.io-client';
-// const socket = io('http://localhost:3000');
-// export default socket; 
+import { io, Socket } from 'socket.io-client';
+
+const SOCKET_URL = `${process.env.API_URL}`;
+
+let socket: Socket | null = null;
+
+export const getSocket = (): Socket => {
+  if (!socket) {
+    socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling']
+    });
+  }
+  return socket;
+};
