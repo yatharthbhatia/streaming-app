@@ -107,37 +107,79 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// TBDB API
+// TMDB API
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 
-app.get('/movies/popular', async (req, res) => {
+const tmdbApi = axios.create({
+  baseURL: TMDB_BASE_URL,
+  params: {
+    api_key: TMDB_API_KEY,
+  },
+});
+
+// popular movies, top_rated, upcoming
+app.get('/movies/:category', async (req, res) => {
+  const { category } = req.params;
   try {
-    const response = await axios.get(`${TMDB_BASE_URL}/movie/popular`, {
-      params: { api_key: TMDB_API_KEY }
-    });
-    console.log(`[MOVIES] Fetched popular movies`);
+    const response = await tmdbApi.get(`/movie/${category}`);
+    console.log(`[MOVIES] Fetched '${category}' movies`);
     res.json(response.data);
   } catch (error) {
-    console.error('[MOVIES] Error fetching popular movies:', error);
-    res.status(500).json({ error: 'Failed to fetch popular movies.' });
+    console.error(`[MOVIES] Error fetching '${category}' movies:`, error);
+    res.status(500).json({ error: `Failed to fetch ${category} movies.` });
   }
 });
 
-app.get('/movies/:id/videos', async (req, res) => {
+// movies by genre
+app.get('/discover/genre/:genreId', async (req, res) => {
+    const { genreId } = req.params;
+    try {
+        const response = await tmdbApi.get('/discover/movie', {
+            params: { with_genres: genreId, sort_by: 'popularity.desc' }
+        });
+        console.log(`[MOVIES] Fetched movies for genre ID: ${genreId}`);
+        res.json(response.data);
+    } catch (error) {
+        console.error(`[MOVIES] Error fetching movies for genre ${genreId}:`, error);
+        res.status(500).json({ error: `Failed to fetch movies for genre ${genreId}.` });
+    }
+});
+
+// movies by watch provider
+app.get('/discover/provider/:providerId', async (req, res) => {
+    const { providerId } = req.params;
+    try {
+        const response = await tmdbApi.get('/discover/movie', {
+            params: { 
+                with_watch_providers: providerId,
+                watch_region: 'US',
+                sort_by: 'popularity.desc' 
+            }
+        });
+        console.log(`[MOVIES] Fetched movies for provider ID: ${providerId}`);
+        res.json(response.data);
+    } catch (error) {
+        console.error(`[MOVIES] Error fetching movies for provider ${providerId}:`, error);
+        res.status(500).json({ error: `Failed to fetch movies for provider ${providerId}.` });
+    }
+});
+
+// specific movie's details, including videos and watch providers
+app.get('/movie/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const response = await axios.get(`${TMDB_BASE_URL}/movie/${id}/videos`, {
-      params: { api_key: TMDB_API_KEY }
+    const response = await tmdbApi.get(`/movie/${id}`, {
+      params: {
+        append_to_response: 'videos,watch/providers,images',
+        include_image_language: 'en,null'
+      },
     });
-    const trailer = response.data.results.find(
-      (v) => v.site === 'YouTube' && v.type === 'Trailer'
-    );
-    console.log(`[MOVIES] Fetched videos for movie ID: ${id}`);
-    res.json({ trailer });
+    console.log(`[MOVIES] Fetched details for movie ID: ${id}`);
+    res.json(response.data);
   } catch (error) {
-    console.error(`[MOVIES] Error fetching videos for movie ${id}:`, error);
-    res.status(500).json({ error: 'Failed to fetch videos.' });
+    console.error(`[MOVIES] Error fetching details for movie ID: ${id}`, error);
+    res.status(500).json({ error: `Failed to fetch details for movie ${id}.` });
   }
 });
 

@@ -26,7 +26,21 @@
       "edgeToEdgeEnabled": true,
       "splash": {
         "image": "./assets/images/icon-1920x720.png"
-      }
+      },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            { "scheme": "https" },
+            { "scheme": "http" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "ios": {
       "splash": {
@@ -34,7 +48,8 @@
       }
     },
     "web": {
-      "icon": "./assets/images/icon-400x240.png"
+      "icon": "./assets/images/icon-400x240.png",
+      "favicon": "./assets/favicon.png"
     },
     "newArchEnabled": true
   }
