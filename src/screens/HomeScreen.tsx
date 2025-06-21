@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Alert, TextInput, Share } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import * as Clipboard from 'expo-clipboard';
 import { disconnectSocket } from '../utils/wsClient';
 
 const API_URL = process.env.EXPO_PUBLIC_SOCKET_URL;
@@ -45,6 +46,44 @@ export default function HomeScreen({ navigation, route }) {
     }
   };
 
+  const showRoomCodePopup = (roomCode) => {
+    const message = `Here is your room code: ${roomCode}\n\nShare it with your friends to let them join!`;
+    Alert.alert(
+      'Room Created!',
+      message,
+      [
+        {
+          text: 'Share',
+          onPress: async () => {
+            try {
+              await Share.share({
+                message: `Join my SocialRooms session! Room code: ${roomCode}`,
+                title: 'Join my SocialRoom!',
+              });
+            } catch (error) {
+              Alert.alert(error.message);
+            }
+          },
+        },
+        
+        {
+          text: 'Copy Code',
+          onPress: async () => {
+            await Clipboard.setStringAsync(roomCode);
+            Alert.alert('Copied!', 'Room code copied to clipboard.');
+          },
+        },
+        
+        {
+          text: 'Join Room',
+          onPress: () => navigation.navigate('Room', { roomCode, username }),
+          style: 'default',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   const handleSignOut = async () => {
     disconnectSocket();
     await SecureStore.deleteItemAsync('authToken');
@@ -63,9 +102,9 @@ export default function HomeScreen({ navigation, route }) {
       });
       const data = await res.json();
       if (data.roomCode) {
-        navigation.navigate('Room', { roomCode: data.roomCode, username });
+        showRoomCodePopup(data.roomCode);
       } else {
-        Alert.alert('Error', 'Could not create room.');
+        Alert.alert('Error', data.error || 'Could not create room.');
       }
     } catch (error) {
       console.error('Error creating room:', error);
@@ -112,6 +151,8 @@ export default function HomeScreen({ navigation, route }) {
             showsHorizontalScrollIndicator={false}
           />
         </View>
+
+        <View style={{ marginTop: 12 }} />
 
         <View style={styles.roomContainer}>
           <TouchableOpacity onPress={createRoom} style={styles.button}>

@@ -20,6 +20,9 @@ importers:
       expo:
         specifier: ^53.0.4
         version: 53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0)
+      expo-clipboard:
+        specifier: ^7.1.4
+        version: 7.1.4(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0))(react-native-tvos@0.79.2-0)(react@19.0.0)
       expo-secure-store:
         specifier: ~14.2.3
         version: 14.2.3(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0))
@@ -1417,6 +1420,13 @@ packages:
 
   expo-asset@11.1.5:
     resolution: {integrity: sha512-GEQDCqC25uDBoXHEnXeBuwpeXvI+3fRGvtzwwt0ZKKzWaN+TgeF8H7c76p3Zi4DfBMFDcduM0CmOvJX+yCCLUQ==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+      react-native: '*'
+
+  expo-clipboard@7.1.4:
+    resolution: {integrity: sha512-NHhfKnrzb4o0PacUKD93ByadU0JmPBoFTFYbbFJZ9OAX6SImpSqG5gfrMUR3vVj4Qx9f1LpMcdAv5lBzv868ow==}
     peerDependencies:
       expo: '*'
       react: '*'
@@ -4615,6 +4625,12 @@ snapshots:
       react-native: react-native-tvos@0.79.2-0(@babel/core@7.27.4)(@types/react@19.0.14)(react-native-tvos@0.79.2-0)(react@19.0.0)
     transitivePeerDependencies:
       - supports-color
+
+  expo-clipboard@7.1.4(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0))(react-native-tvos@0.79.2-0)(react@19.0.0):
+    dependencies:
+      expo: 53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0)
+      react: 19.0.0
+      react-native: react-native-tvos@0.79.2-0(@babel/core@7.27.4)(@types/react@19.0.14)(react-native-tvos@0.79.2-0)(react@19.0.0)
 
   expo-constants@17.1.6(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0))(react-native-tvos@0.79.2-0):
     dependencies:

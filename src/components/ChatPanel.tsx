@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, FlatList, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, TextInput, Button, FlatList, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { getSocket, disconnectSocket } from '../utils/wsClient';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 export default function ChatPanel({ roomCode, username }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [socket, setSocket] = useState(null);
+  const flatListRef = useRef(null);
 
   useEffect(() => {
     const initializeSocket = async () => {
@@ -50,6 +50,12 @@ export default function ChatPanel({ roomCode, username }) {
     }
   }, [socket, roomCode]);
 
+  useEffect(() => {
+    if (messages.length > 0) {
+        flatListRef.current?.scrollToEnd({ animated: true });
+    }
+  }, [messages]);
+
   const sendMessage = () => {
     if (input.trim() && socket) {
       const messagePayload = {
@@ -63,13 +69,13 @@ export default function ChatPanel({ roomCode, username }) {
   };
 
   return (
-    <KeyboardAwareScrollView
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      resetScrollToCoords={{ x: 0, y: 0 }}
-      scrollEnabled={false}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
     >
       <FlatList
+        ref={flatListRef}
         data={messages}
         renderItem={({ item }) => (
           <View style={styles.messageContainer}>
@@ -80,6 +86,7 @@ export default function ChatPanel({ roomCode, username }) {
         )}
         keyExtractor={(_, i) => i.toString()}
         style={styles.list}
+        contentContainerStyle={{ paddingBottom: 10 }}
       />
       <View style={styles.inputContainer}>
         <TextInput
@@ -92,7 +99,7 @@ export default function ChatPanel({ roomCode, username }) {
         />
         <Button title="Send" onPress={sendMessage} />
       </View>
-    </KeyboardAwareScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -100,9 +107,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f0f0f0',
-  },
-  contentContainer: {
-    flexGrow: 1,
   },
   list: {
     flex: 1,
