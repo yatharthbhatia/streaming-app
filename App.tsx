@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import HomeScreen from './src/screens/HomeScreen';
 import RoomScreen from './src/screens/RoomScreen';
 import LoginScreen from './src/screens/LoginScreen';
+import AuthLoadingScreen from './src/screens/AuthLoadingScreen';
 
 const Stack = createStackNavigator();
 
@@ -25,9 +26,10 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator
         id={undefined}
-        initialRouteName="Login"
+        initialRouteName="AuthLoading"
         screenOptions={{ headerShown: false }}
       >
+        <Stack.Screen name="AuthLoading" component={AuthLoadingScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Main" component={MainStack} />
       </Stack.Navigator>

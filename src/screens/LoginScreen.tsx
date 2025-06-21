@@ -59,16 +59,18 @@ export default function LoginScreen({ navigation }) {
         secureTextEntry
       />
       <Button title={isRegistering ? 'Register' : 'Login'} onPress={handleAuth} />
-      <Button
-        title={isRegistering ? 'Back to Login' : 'Need an account? Register'}
-        onPress={() => setIsRegistering(!isRegistering)}
-        color="#888"
-      />
+      <View style={{ marginTop: 12 }}>
+        <Button
+          title={isRegistering ? 'Back to Login' : 'Need an account? Register'}
+          onPress={() => setIsRegistering(!isRegistering)}
+          color="#888"
+        />
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',

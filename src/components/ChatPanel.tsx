@@ -1,29 +1,57 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, FlatList, Text, KeyboardAvoidingView, Platform } from 'react-native';
-import { getSocket } from '../utils/wsClient';
+import { View, TextInput, Button, FlatList, Text, StyleSheet } from 'react-native';
+import { getSocket, disconnectSocket } from '../utils/wsClient';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 export default function ChatPanel({ roomCode, username }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const socket = getSocket();
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    if (roomCode) {
-      socket.emit('joinRoom', { roomCode });
+    const initializeSocket = async () => {
+      try {
+        const newSocket = await getSocket();
+        setSocket(newSocket);
+      } catch (error) {
+        console.error('Failed to initialize socket:', error);
+      }
+    };
 
-      socket.on('chatMessage', (message) => {
-        setMessages((prevMessages) => [...prevMessages, message]);
-      });
-    }
+    initializeSocket();
 
     return () => {
-      socket.off('chatMessage');
-      // TODO: Consider adding socket.emit('leaveRoom', { roomCode }) to track when users leave rooms
+      disconnectSocket();
     };
-  }, [roomCode]);
+  }, []);
+
+  useEffect(() => {
+    if (socket && roomCode) {
+      socket.emit('joinRoom', { roomCode });
+
+      const handleChatMessage = (message) => {
+        setMessages((prevMessages) => [...prevMessages, message]);
+      };
+
+      const handleUserJoined = ({ username: joinedUsername }) => {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: 'System', text: `${joinedUsername} has joined the room.` },
+        ]);
+      };
+
+      socket.on('chatMessage', handleChatMessage);
+      socket.on('userJoined', handleUserJoined);
+
+      return () => {
+        socket.off('chatMessage', handleChatMessage);
+        socket.off('userJoined', handleUserJoined);
+      };
+    }
+  }, [socket, roomCode]);
 
   const sendMessage = () => {
-    if (input.trim() && roomCode) {
+    if (input.trim() && socket) {
       const messagePayload = {
         roomCode,
         message: input,
@@ -35,35 +63,80 @@ export default function ChatPanel({ roomCode, username }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+    <KeyboardAwareScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      resetScrollToCoords={{ x: 0, y: 0 }}
+      scrollEnabled={false}
     >
-      <View style={{ flex: 1, padding: 10 }}>
-        <FlatList
-          data={messages}
-          renderItem={({ item }) => (
-            <Text style={{ marginBottom: 4, backgroundColor: '#ffffff', padding: 5, borderRadius: 5, color: 'black' }}>
-              <Text style={{ fontWeight: 'bold', color: 'black' }}>{item.sender}:</Text> {item.text}
+      <FlatList
+        data={messages}
+        renderItem={({ item }) => (
+          <View style={styles.messageContainer}>
+            <Text style={styles.messageText}>
+              <Text style={styles.senderText}>{item.sender}:</Text> {item.text}
             </Text>
-          )}
-          keyExtractor={(_, i) => i.toString()}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 10 }}
+          </View>
+        )}
+        keyExtractor={(_, i) => i.toString()}
+        style={styles.list}
+      />
+      <View style={styles.inputContainer}>
+        <TextInput
+          value={input}
+          onChangeText={setInput}
+          placeholder="Type a message"
+          style={styles.input}
+          onSubmitEditing={sendMessage}
+          returnKeyType="send"
         />
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TextInput
-            value={input}
-            onChangeText={setInput}
-            placeholder="Type a message"
-            style={{ borderWidth: 1, flex: 1, marginRight: 8, padding: 8, borderRadius: 5, borderColor: '#ccc' }}
-            onSubmitEditing={sendMessage}
-            returnKeyType="send"
-          />
-          <Button title="Send" onPress={sendMessage} />
-        </View>
+        <Button title="Send" onPress={sendMessage} />
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardAwareScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f0f0f0',
+  },
+  contentContainer: {
+    flexGrow: 1,
+  },
+  list: {
+    flex: 1,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#ccc',
+    backgroundColor: '#fff',
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginRight: 8,
+    padding: 8,
+    borderRadius: 5,
+  },
+  messageContainer: {
+    marginBottom: 5,
+    backgroundColor: 'white',
+    padding: 8,
+    borderRadius: 5,
+    alignSelf: 'flex-start',
+  },
+  messageText: {
+    color: 'black',
+  },
+  senderText: {
+    fontWeight: 'bold',
+    color: 'black',
+  },
+});

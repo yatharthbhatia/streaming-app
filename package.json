@@ -11,14 +11,18 @@
   "dependencies": {
     "@react-navigation/native": "^7.1.11",
     "@react-navigation/stack": "^7.3.4",
+    "@types/react-native-video": "^5.0.20",
     "expo": "^53.0.4",
     "expo-secure-store": "~14.2.3",
     "expo-splash-screen": "~0.30.6",
     "expo-status-bar": "~2.2.2",
+    "jwt-decode": "^4.0.0",
     "react": "19.0.0",
     "react-native": "npm:react-native-tvos@0.79.2-0",
-    "react-native-video": "^6.0.0",
-    "socket.io-client": "^4.7.5"
+    "react-native-keyboard-aware-scroll-view": "^0.9.5",
+    "react-native-screens": "^4.11.1",
+    "react-native-video": "^6.15.0",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

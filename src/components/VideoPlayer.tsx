@@ -1,23 +1,35 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Button } from 'react-native';
 import Video from 'react-native-video';
-import { getSocket } from '../utils/wsClient';
+import { getSocket, disconnectSocket } from '../utils/wsClient';
 
 export default function VideoPlayer({ roomCode }) {
   const videoRef = useRef(null);
   const [paused, setPaused] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
-  const [videoSource, setVideoSource] = useState(null); // This will store the video URL to play
-
-  const socket = getSocket();
+  const [videoSource, setVideoSource] = useState(null);
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    if (roomCode) {
-      // Emit initial video state when joining room to sync with other viewers
-      // socket.emit('videoEvent', { roomCode, event: { type: 'initial', time: currentTime, paused: paused } });
+    const initializeSocket = async () => {
+      try {
+        const newSocket = await getSocket();
+        setSocket(newSocket);
+      } catch (error) {
+        console.error('VideoPlayer: Failed to initialize socket:', error);
+      }
+    };
 
-      socket.on('videoEvent', (event) => {
-        console.log('Received video event:', event);
+    initializeSocket();
+
+    return () => {
+      disconnectSocket();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (socket && roomCode) {
+      const handleVideoEvent = (event) => {
         switch (event.type) {
           case 'play':
             setPaused(false);
@@ -31,29 +43,33 @@ export default function VideoPlayer({ roomCode }) {
             }
             setCurrentTime(event.time);
             break;
-          default:
-            break;
         }
-      });
-    }
+      };
 
-    return () => {
-      socket.off('videoEvent');
-    };
-  }, [roomCode]);
+      socket.on('videoEvent', handleVideoEvent);
+
+      return () => {
+        socket.off('videoEvent', handleVideoEvent);
+      };
+    }
+  }, [socket, roomCode]);
 
   const handlePlayPause = () => {
-    const newPausedState = !paused;
-    setPaused(newPausedState);
-    socket.emit('videoEvent', { roomCode, event: { type: newPausedState ? 'pause' : 'play', time: currentTime } });
+    if (socket) {
+      const newPausedState = !paused;
+      setPaused(newPausedState);
+      socket.emit('videoEvent', { roomCode, event: { type: newPausedState ? 'pause' : 'play', time: currentTime } });
+    }
   };
 
   const handleSeek = (time) => {
-    if (videoRef.current) {
-      videoRef.current.seek(time);
+    if (socket) {
+      if (videoRef.current) {
+        videoRef.current.seek(time);
+      }
+      setCurrentTime(time);
+      socket.emit('videoEvent', { roomCode, event: { type: 'seek', time: time } });
     }
-    setCurrentTime(time);
-    socket.emit('videoEvent', { roomCode, event: { type: 'seek', time: time } });
   };
 
   const onProgress = (data) => {
@@ -70,13 +86,12 @@ export default function VideoPlayer({ roomCode }) {
           onProgress={onProgress}
           onEnd={() => setPaused(true)}
           style={styles.video}
-          controls={false} // Using custom controls for synchronized playback
+          controls={false}
           resizeMode="contain"
         />
       ) : (
         <View style={styles.placeholder}>
-          <Text>No video loaded for Room: {roomCode}</Text>
-          {/* URL can be added here */}
+          <Text style={{color: 'white'}}>No video loaded for Room: {roomCode}</Text>
           <Button title="Load Sample Video" onPress={() => setVideoSource(null)} />
         </View>
       )}
@@ -85,7 +100,7 @@ export default function VideoPlayer({ roomCode }) {
         <Button title={paused ? 'Play' : 'Pause'} onPress={handlePlayPause} />
         <Button title="Seek +10s" onPress={() => handleSeek(currentTime + 10)} />
         <Button title="Seek -10s" onPress={() => handleSeek(currentTime - 10)} />
-        <Text>Time: {Math.floor(currentTime)}s</Text>
+        <Text style={{color: 'white'}}>Time: {Math.floor(currentTime)}s</Text>
       </View>
     </View>
   );
