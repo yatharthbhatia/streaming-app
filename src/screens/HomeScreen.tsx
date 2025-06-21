@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Alert, ScrollView, ActivityIndicator, ImageBackground, Linking } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import * as SecureStore from 'expo-secure-store';
 import * as Clipboard from 'expo-clipboard';
 import { Share } from 'react-native';
 import { disconnectSocket } from '../utils/wsClient';
+// @ts-ignore
 import { LinearGradient } from 'expo-linear-gradient';
 
 const API_URL = process.env.EXPO_PUBLIC_SOCKET_URL;
@@ -33,22 +35,18 @@ const WatchProviderIcon = ({ provider }) => (
     </View>
 );
 
-const HeroBanner = ({ movie, onJoin }) => {
+const HeroBanner = ({ movie, onCreateRoom }) => {
   if (movie === null) {
-    return (
-      <View style={styles.heroContainer}>
-        <ActivityIndicator size="large" color="#fff" />
-      </View>
-    );
+    return <View style={styles.heroContainer}><ActivityIndicator size="large" color="#fff" /></View>;
   }
-
   if (!movie) {
     return <View style={styles.heroContainer} />;
   }
 
   const logo = movie.images?.logos?.find(l => l.iso_639_1 === 'en');
-  const providers = movie?.['watch/providers']?.results?.US?.flatrate;
-  const trailer = movie?.videos?.results?.find(v => v.site === 'YouTube' && v.type === 'Trailer');
+  const providers = movie['watch/providers']?.results?.US?.flatrate;
+  const watchLink = movie['watch/providers']?.results?.US?.link;
+  const trailer = movie.videos?.results?.find(v => v.site === 'YouTube' && v.type === 'Trailer');
 
   return (
     <ImageBackground
@@ -70,25 +68,26 @@ const HeroBanner = ({ movie, onJoin }) => {
             <Text style={styles.heroTitle}>{movie.title}</Text>
           )}
           <Text style={styles.heroDescription} numberOfLines={3}>{movie.overview}</Text>
-
-          {providers && providers.length > 0 ? (
+          {providers && providers.length > 0 &&
             <View>
                 <Text style={styles.watchNowText}>Available on:</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{flexGrow: 0, marginBottom: 15}}>
                     {providers.map(p => <WatchProviderIcon key={p.provider_id} provider={p} />)}
                 </ScrollView>
             </View>
-          ) : null}
-
+          }
           <View style={styles.heroButtonContainer}>
             <TouchableOpacity 
                 style={[styles.heroButton, styles.playButton]}
-                onPress={() => onJoin(trailer)}
+                onPress={() => {
+                    if (watchLink) WebBrowser.openBrowserAsync(watchLink);
+                    else Alert.alert("Not Available", "This movie does not seem to be available for streaming right now.");
+                }}
             >
-              <Text style={[styles.buttonText, { color: 'black' }]}>▶ Create Room & Watch Trailer</Text>
+              <Text style={[styles.buttonText, { color: 'black' }]}>▶ Watch Now</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.heroButton, styles.infoButton]}>
-              <Text style={styles.buttonText}>ⓘ More Info</Text>
+            <TouchableOpacity style={[styles.heroButton, styles.infoButton]} onPress={() => onCreateRoom(trailer)}>
+              <Text style={styles.buttonText}>💬 Create Room</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -122,22 +121,23 @@ const MovieCategory = ({ title, movies, onPressMovie }) => (
 );
 
 const ProviderSelector = ({ onSelect, selectedProvider }) => (
-  <View style={styles.providerContainer}>
-    <Text style={styles.carouselTitle}>Filter by Service</Text>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingLeft: 20}}>
-      {WATCH_PROVIDERS.map(p => (
-        <TouchableOpacity key={p.id} onPress={() => onSelect(p)} style={[styles.providerLogoContainer, selectedProvider?.id === p.id && styles.providerSelected]}>
-          <Image source={{ uri: `${TMDB_IMAGE_URL}${p.logo_path}` }} style={styles.providerLogo} />
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  </View>
+    <View style={styles.providerContainer}>
+      <Text style={styles.carouselTitle}>Filter by Service</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingLeft: 20}}>
+        {WATCH_PROVIDERS.map(p => (
+          <TouchableOpacity key={p.id} onPress={() => onSelect(p)} style={[styles.providerLogoContainer, selectedProvider?.id === p.id && styles.providerSelected]}>
+            <Image source={{ uri: `${TMDB_IMAGE_URL}${p.logo_path}` }} style={styles.providerLogo} />
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
 );
 
 export default function HomeScreen({ navigation, route }) {
   const [categories, setCategories] = useState([]);
   const [heroMovie, setHeroMovie] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [heroLoading, setHeroLoading] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [providerMovies, setProviderMovies] = useState([]);
   const [providerLoading, setProviderLoading] = useState(false);
@@ -180,6 +180,22 @@ export default function HomeScreen({ navigation, route }) {
     };
     fetchAllData();
   }, []);
+
+  const handleSelectMovie = async (movie) => {
+    setHeroLoading(true);
+    try {
+        const detailedRes = await fetch(`${API_URL}/movie/${movie.id}`);
+        if (detailedRes.ok) {
+            setHeroMovie(await detailedRes.json());
+        } else {
+            Alert.alert("Error", "Could not load movie details.");
+        }
+    } catch (err) {
+        Alert.alert("Network Error", "Could not fetch movie details.");
+    } finally {
+        setHeroLoading(false);
+    }
+  };
 
   const handleSelectProvider = async (provider) => {
       if (selectedProvider?.id === provider.id) {
@@ -244,7 +260,11 @@ export default function HomeScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <HeroBanner movie={heroMovie} onJoin={createRoom} />
+        {heroLoading ? (
+            <View style={styles.heroContainer}><ActivityIndicator size="large" color="#fff"/></View>
+        ) : (
+            <HeroBanner movie={heroMovie} onCreateRoom={createRoom} />
+        )}
         <ProviderSelector onSelect={handleSelectProvider} selectedProvider={selectedProvider} />
         {providerLoading ? (
           <ActivityIndicator style={{ marginTop: 20 }} color="#fff" />
@@ -252,7 +272,7 @@ export default function HomeScreen({ navigation, route }) {
           <MovieCategory
             title={`Only on ${selectedProvider.name}`}
             movies={providerMovies}
-            onPressMovie={(movie) => console.log("Pressed movie:", movie.title)}
+            onPressMovie={handleSelectMovie}
           />
         ) : null}
         {categories.map((category) => (
@@ -260,9 +280,7 @@ export default function HomeScreen({ navigation, route }) {
             key={category.title}
             title={category.title}
             movies={category.movies}
-            onPressMovie={(movie) => {
-              console.log("Pressed movie:", movie.title);
-            }}
+            onPressMovie={handleSelectMovie}
           />
         ))}
       </ScrollView>
@@ -286,8 +304,8 @@ const styles = StyleSheet.create({
   welcomeText: { color: 'white', fontSize: 22, fontWeight: 'bold' },
   signOutText: { color: '#ccc', fontSize: 16 },
 
-  heroContainer: { height: 480, width: '100%', justifyContent: 'flex-end' },
-  heroOverlay: { flex: 1, justifyContent: 'flex-end', paddingBottom: 30, paddingHorizontal: 20 },
+  heroContainer: { height: 480, width: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
+  heroOverlay: { flex: 1, justifyContent: 'flex-end', paddingBottom: 30, paddingHorizontal: 20, width: '100%' },
   heroContent: { width: '60%' },
   heroLogo: { width: '80%', height: 100, marginBottom: 10 },
   heroTitle: { color: 'white', fontSize: 40, fontWeight: 'bold', marginBottom: 10 },
