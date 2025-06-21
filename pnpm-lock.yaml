@@ -22,10 +22,10 @@ importers:
         version: 53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react-native-webview@13.15.0(react-native-tvos@0.79.2-0)(react@19.0.0))(react@19.0.0)
       expo-clipboard:
         specifier: ^7.1.4
-        version: 7.1.4(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react-native-webview@13.15.0(react-native-tvos@0.79.2-0)(react@19.0.0))(react@19.0.0))(react-native-tvos@0.79.2-0)(react@19.0.0)
+        version: 7.1.4(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0))(react-native-tvos@0.79.2-0)(react@19.0.0)
       expo-linear-gradient:
         specifier: ^14.1.5
-        version: 14.1.5(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react-native-webview@13.15.0(react-native-tvos@0.79.2-0)(react@19.0.0))(react@19.0.0))(react-native-tvos@0.79.2-0)(react@19.0.0)
+        version: 14.1.5(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0))(react-native-tvos@0.79.2-0)(react@19.0.0)
       expo-secure-store:
         specifier: ~14.2.3
         version: 14.2.3(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react-native-webview@13.15.0(react-native-tvos@0.79.2-0)(react@19.0.0))(react@19.0.0))
@@ -35,6 +35,9 @@ importers:
       expo-status-bar:
         specifier: ~2.2.2
         version: 2.2.3(react-native-tvos@0.79.2-0)(react@19.0.0)
+      expo-web-browser:
+        specifier: ^14.2.0
+        version: 14.2.0(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0))(react-native-tvos@0.79.2-0)
       jwt-decode:
         specifier: ^4.0.0
         version: 4.0.0
@@ -1490,6 +1493,12 @@ packages:
     resolution: {integrity: sha512-+c8R3AESBoduunxTJ8353SqKAKpxL6DvcD8VKBuh81zzJyUUbfB4CVjr1GufSJEKsMzNPXZU+HJwXx7Xh7lx8Q==}
     peerDependencies:
       react: '*'
+      react-native: '*'
+
+  expo-web-browser@14.2.0:
+    resolution: {integrity: sha512-6S51d8pVlDRDsgGAp8BPpwnxtyKiMWEFdezNz+5jVIyT+ctReW42uxnjRgtsdn5sXaqzhaX+Tzk/CWaKCyC0hw==}
+    peerDependencies:
+      expo: '*'
       react-native: '*'
 
   expo@53.0.11:
@@ -4676,9 +4685,9 @@ snapshots:
       expo: 53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react-native-webview@13.15.0(react-native-tvos@0.79.2-0)(react@19.0.0))(react@19.0.0)
       react: 19.0.0
 
-  expo-linear-gradient@14.1.5(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react-native-webview@13.15.0(react-native-tvos@0.79.2-0)(react@19.0.0))(react@19.0.0))(react-native-tvos@0.79.2-0)(react@19.0.0):
+  expo-linear-gradient@14.1.5(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0))(react-native-tvos@0.79.2-0)(react@19.0.0):
     dependencies:
-      expo: 53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react-native-webview@13.15.0(react-native-tvos@0.79.2-0)(react@19.0.0))(react@19.0.0)
+      expo: 53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0)
       react: 19.0.0
       react-native: react-native-tvos@0.79.2-0(@babel/core@7.27.4)(@types/react@19.0.14)(react-native-tvos@0.79.2-0)(react@19.0.0)
 
@@ -4714,7 +4723,12 @@ snapshots:
       react-native-edge-to-edge: 1.6.0(react-native-tvos@0.79.2-0)(react@19.0.0)
       react-native-is-edge-to-edge: 1.1.7(react-native-tvos@0.79.2-0)(react@19.0.0)
 
-  expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react-native-webview@13.15.0(react-native-tvos@0.79.2-0)(react@19.0.0))(react@19.0.0):
+  expo-web-browser@14.2.0(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0))(react-native-tvos@0.79.2-0):
+    dependencies:
+      expo: 53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0)
+      react-native: react-native-tvos@0.79.2-0(@babel/core@7.27.4)(@types/react@19.0.14)(react-native-tvos@0.79.2-0)(react@19.0.0)
+
+  expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0):
     dependencies:
       '@babel/runtime': 7.27.6
       '@expo/cli': 0.24.14
