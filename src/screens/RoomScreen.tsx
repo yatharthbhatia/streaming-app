@@ -4,7 +4,7 @@ import VideoPlayer from '../components/VideoPlayer';
 import ChatPanel from '../components/ChatPanel';
 
 export default function RoomScreen({ route }) {
-  const { roomCode } = route.params;
+  const { roomCode, username } = route.params;
 
   return (
     <View style={styles.container}>
@@ -12,7 +12,7 @@ export default function RoomScreen({ route }) {
         <VideoPlayer roomCode={roomCode} />
       </View>
       <View style={styles.chatSection}>
-        <ChatPanel roomCode={roomCode} />
+        <ChatPanel roomCode={roomCode} username={username} />
       </View>
     </View>
   );

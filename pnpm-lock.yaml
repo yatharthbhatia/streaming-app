@@ -17,6 +17,9 @@ importers:
       expo:
         specifier: ^53.0.4
         version: 53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0)
+      expo-secure-store:
+        specifier: ~14.2.3
+        version: 14.2.3(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0))
       expo-splash-screen:
         specifier: ~0.30.6
         version: 0.30.9(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0))
@@ -45,9 +48,6 @@ importers:
       '@types/react':
         specifier: ~19.0.10
         version: 19.0.14
-      babel-plugin-transform-inline-environment-variables:
-        specifier: ^0.4.4
-        version: 0.4.4
       typescript:
         specifier: ~5.8.3
         version: 5.8.3
@@ -990,9 +990,6 @@ packages:
   babel-plugin-transform-flow-enums@0.0.2:
     resolution: {integrity: sha512-g4aaCrDDOsWjbm0PUUeVnkcVd6AKJsVc/MbnPhEotEpkeJQP6b8nzewohQi7+QS8UyPehOhGWn0nOwjvWpmMvQ==}
 
-  babel-plugin-transform-inline-environment-variables@0.4.4:
-    resolution: {integrity: sha512-bJILBtn5a11SmtR2j/3mBOjX4K3weC6cq+NNZ7hG22wCAqpc3qtj/iN7dSe9HDiS46lgp1nHsQgeYrea/RUe+g==}
-
   babel-preset-current-node-syntax@1.1.0:
     resolution: {integrity: sha512-ldYss8SbBlWva1bs28q78Ju5Zq1F+8BrqBZZ0VFhLBvhh6lCpC2o3gDJi/5DRLs9FgYZCnmPYIVFU4lRXCkyUw==}
     peerDependencies:
@@ -1388,6 +1385,11 @@ packages:
 
   expo-modules-core@2.4.0:
     resolution: {integrity: sha512-Ko5eHBdvuMykjw9P9C9PF54/wBSsGOxaOjx92I5BwgKvEmUwN3UrXFV4CXzlLVbLfSYUQaLcB220xmPfgvT7Fg==}
+
+  expo-secure-store@14.2.3:
+    resolution: {integrity: sha512-hYBbaAD70asKTFd/eZBKVu+9RTo9OSTMMLqXtzDF8ndUGjpc6tmRCoZtrMHlUo7qLtwL5jm+vpYVBWI8hxh/1Q==}
+    peerDependencies:
+      expo: '*'
 
   expo-splash-screen@0.30.9:
     resolution: {integrity: sha512-curHUaZxUTZ2dWvz32ao3xPv5mJr1LBqn5V8xm/IULAehB9RGCn8iKiROMN1PYebSG+56vPMuJmBm9P+ayvJpA==}
@@ -4079,8 +4081,6 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
 
-  babel-plugin-transform-inline-environment-variables@0.4.4: {}
-
   babel-preset-current-node-syntax@1.1.0(@babel/core@7.27.4):
     dependencies:
       '@babel/core': 7.27.4
@@ -4479,6 +4479,10 @@ snapshots:
   expo-modules-core@2.4.0:
     dependencies:
       invariant: 2.2.4
+
+  expo-secure-store@14.2.3(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0)):
+    dependencies:
+      expo: 53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0)
 
   expo-splash-screen@0.30.9(expo@53.0.11(@babel/core@7.27.4)(react-native-tvos@0.79.2-0)(react@19.0.0)):
     dependencies:

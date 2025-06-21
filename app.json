@@ -1,5 +1,8 @@
 {
   "expo": {
+    "name": "SocialRooms",
+    "slug": "SocialRooms",
+    "icon": "./assets/icon.png",
     "plugins": [
       [
         "@react-native-tvos/config-tv",
@@ -16,7 +19,8 @@
             "topShelfWide2x": "./assets/images/icon-4640x1440.png"
           }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "android": {
       "edgeToEdgeEnabled": true,
@@ -32,8 +36,6 @@
     "web": {
       "icon": "./assets/images/icon-400x240.png"
     },
-    "newArchEnabled": true,
-    "name": "SocialRooms",
-    "slug": "SocialRooms"
+    "newArchEnabled": true
   }
 }

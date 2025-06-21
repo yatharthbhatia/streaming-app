@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, TextInput, Button, FlatList, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import { getSocket } from '../utils/wsClient';
 
-export default function ChatPanel({ roomCode }) {
+export default function ChatPanel({ roomCode, username }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const socket = getSocket();
@@ -24,7 +24,12 @@ export default function ChatPanel({ roomCode }) {
 
   const sendMessage = () => {
     if (input.trim() && roomCode) {
-      socket.emit('chatMessage', { roomCode, message: input });
+      const messagePayload = {
+        roomCode,
+        message: input,
+        sender: username,
+      };
+      socket.emit('chatMessage', messagePayload);
       setInput('');
     }
   };
@@ -39,8 +44,8 @@ export default function ChatPanel({ roomCode }) {
         <FlatList
           data={messages}
           renderItem={({ item }) => (
-            <Text style={{ marginBottom: 4 }}>
-              <Text style={{ fontWeight: 'bold' }}>{item.sender.substring(0, 4)}:</Text> {item.text}
+            <Text style={{ marginBottom: 4, backgroundColor: '#ffffff', padding: 5, borderRadius: 5, color: 'black' }}>
+              <Text style={{ fontWeight: 'bold', color: 'black' }}>{item.sender}:</Text> {item.text}
             </Text>
           )}
           keyExtractor={(_, i) => i.toString()}
