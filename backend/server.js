@@ -182,12 +182,17 @@ app.post('/room', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { userId, username } = decoded;
 
+    // requestbody -> title & watchUrl
+    const { title, watchUrl } = req.body;
+    if (!title || !watchUrl) {
+      return res.status(400).json({ error: 'Title and watchUrl are required.' });
+    }
+
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const title = `${username}'s Room`;
 
     await pool.query(
-      'INSERT INTO rooms (room_code, title, host_id) VALUES ($1, $2, $3)',
-      [roomCode, title, userId]
+      'INSERT INTO rooms (room_code, title, host_id, watch_url) VALUES ($1, $2, $3, $4)',
+      [roomCode, title, userId, watchUrl]
     );
 
     console.log(`[ROOM] Room created: ${roomCode} by user ${username} (ID: ${userId})`);
@@ -199,6 +204,27 @@ app.post('/room', async (req, res) => {
       return res.status(401).json({ error: 'Invalid token.' });
     }
     res.status(500).json({ error: 'Server error creating room.' });
+  }
+});
+
+// room details -> title & watchUrl (no auth needed)
+app.get('/room/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const result = await pool.query('SELECT title, watch_url FROM rooms WHERE room_code = $1', [code]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Room not found.' });
+    }
+
+    const room = result.rows[0];
+    res.json({
+      title: room.title,
+      watchUrl: room.watch_url,
+    });
+  } catch (err) {
+    console.error(`[ROOM] Error fetching room details:`, err);
+    res.status(500).json({ error: 'Server error fetching room details.' });
   }
 });
 
