@@ -7,6 +7,9 @@ import { Pool } from 'pg';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
@@ -107,80 +110,61 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// TMDB API
-const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const tmdbApi = axios.create({
-  baseURL: TMDB_BASE_URL,
-  params: {
-    api_key: TMDB_API_KEY,
-  },
-});
-
-// popular movies, top_rated, upcoming
-app.get('/movies/:category', async (req, res) => {
-  const { category } = req.params;
+// local JSON
+let movies = [];
+(async () => {
   try {
-    const response = await tmdbApi.get(`/movie/${category}`);
-    console.log(`[MOVIES] Fetched '${category}' movies`);
-    res.json(response.data);
-  } catch (error) {
-    console.error(`[MOVIES] Error fetching '${category}' movies:`, error);
-    res.status(500).json({ error: `Failed to fetch ${category} movies.` });
+    const MOVIE_DB_PATH = path.join(__dirname, '../assets/movie_db.json');
+    const data = await fs.readFile(MOVIE_DB_PATH, 'utf-8');
+    movies = JSON.parse(data);
+    console.log(`[MOVIE_DB] Loaded ${movies.length} movies from movie_db.json`);
+  } catch (err) {
+    console.error('[MOVIE_DB] Failed to load movie_db.json:', err);
   }
+})();
+
+// Get all movies
+app.get('/movies', (req, res) => {
+  res.json({ results: movies });
 });
 
-// movies by genre
-app.get('/discover/genre/:genreId', async (req, res) => {
-    const { genreId } = req.params;
-    try {
-        const response = await tmdbApi.get('/discover/movie', {
-            params: { with_genres: genreId, sort_by: 'popularity.desc' }
-        });
-        console.log(`[MOVIES] Fetched movies for genre ID: ${genreId}`);
-        res.json(response.data);
-    } catch (error) {
-        console.error(`[MOVIES] Error fetching movies for genre ${genreId}:`, error);
-        res.status(500).json({ error: `Failed to fetch movies for genre ${genreId}.` });
-    }
+// movie -> tmdb_id
+app.get('/movie/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const movie = movies.find(m => m.tmdb_id === id);
+  if (movie) return res.json(movie);
+  res.status(404).json({ error: 'Movie not found' });
 });
 
-// movies by watch provider
-app.get('/discover/provider/:providerId', async (req, res) => {
-    const { providerId } = req.params;
-    try {
-        const response = await tmdbApi.get('/discover/movie', {
-            params: { 
-                with_watch_providers: providerId,
-                watch_region: 'US',
-                sort_by: 'popularity.desc' 
-            }
-        });
-        console.log(`[MOVIES] Fetched movies for provider ID: ${providerId}`);
-        res.json(response.data);
-    } catch (error) {
-        console.error(`[MOVIES] Error fetching movies for provider ${providerId}:`, error);
-        res.status(500).json({ error: `Failed to fetch movies for provider ${providerId}.` });
-    }
+// Get movies by genre
+app.get('/discover/genre/:genre', (req, res) => {
+  const genre = req.params.genre;
+  const filtered = movies.filter(m => m.genres && m.genres.includes(genre));
+  res.json({ results: filtered });
 });
 
-// specific movie's details, including videos and watch providers
-app.get('/movie/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const response = await tmdbApi.get(`/movie/${id}`, {
-      params: {
-        append_to_response: 'videos,watch/providers,images',
-        include_image_language: 'en,null'
-      },
-    });
-    console.log(`[MOVIES] Fetched details for movie ID: ${id}`);
-    res.json(response.data);
-  } catch (error) {
-    console.error(`[MOVIES] Error fetching details for movie ID: ${id}`, error);
-    res.status(500).json({ error: `Failed to fetch details for movie ${id}.` });
-  }
+// movies -> title, description, or genre
+app.get('/search', (req, res) => {
+  const query = (req.query.query || '').toLowerCase();
+  if (!query) return res.json({ results: movies });
+  const filtered = movies.filter(m =>
+    m.title.toLowerCase().includes(query) ||
+    m.description.toLowerCase().includes(query) ||
+    (m.genres && m.genres.some(g => g.toLowerCase().includes(query)))
+  );
+  res.json({ results: filtered });
+});
+
+// movies -> streaming provider
+app.get('/discover/provider/:provider', (req, res) => {
+  const provider = req.params.provider.toLowerCase();
+  const filtered = movies.filter(m =>
+    m.available_on && m.available_on.some(p => p.toLowerCase().includes(provider))
+  );
+  res.json({ results: filtered });
 });
 
 // Rooms
