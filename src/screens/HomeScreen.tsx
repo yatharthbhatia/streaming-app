@@ -202,6 +202,10 @@ export default function HomeScreen({ navigation, route }) {
       const roomRes = await fetch(`${API_URL}/room`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          title: movie.title,
+          watchUrl: movie.homepage,
+        }),
       });
       const roomData = await roomRes.json();
       if (roomData.roomCode) {
@@ -243,12 +247,30 @@ export default function HomeScreen({ navigation, route }) {
   // first movie -> hero banner
   // const heroMovie = uniqueMovies[0];
 
-  const handleJoinExistingRoom = () => {
-    if (!joinRoomCode.trim()) {
+  const handleJoinExistingRoom = async () => {
+    const code = joinRoomCode.trim();
+    if (!code) {
       Alert.alert('Error', 'Please enter a room code.');
       return;
     }
-    navigation.navigate('Room', { roomCode: joinRoomCode, username });
+
+    try {
+      const res = await fetch(`${API_URL}/room/${code}`);
+      const roomData = await res.json();
+
+      if (!res.ok) {
+        return Alert.alert('Error', roomData.error || 'Could not find room.');
+      }
+
+      navigation.navigate('Room', {
+        roomCode: code,
+        username,
+        watchLink: roomData.watchUrl,
+        title: roomData.title,
+      });
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred while trying to join the room.');
+    }
   };
 
   const handleSignOut = async () => {

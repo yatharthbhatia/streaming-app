@@ -19,6 +19,7 @@ CREATE TABLE rooms (
     id SERIAL PRIMARY KEY,
     room_code VARCHAR(10) UNIQUE NOT NULL,
     title VARCHAR(255),
+    watch_url TEXT,
     host_id INTEGER REFERENCES users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
