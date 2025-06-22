@@ -1,13 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 // @ts-ignore
 import { WebView } from 'react-native-webview';
 import ChatPanel from '../components/ChatPanel';
 
+const API_URL = process.env.EXPO_PUBLIC_SOCKET_URL;
+
 export default function RoomScreen({ route }) {
-  const { roomCode, username, watchLink, title, videoUrl } = route.params;
-  const [currentVideoUrl, setCurrentVideoUrl] = useState(videoUrl || watchLink);
+  const { roomCode, username, watchLink, title } = route.params;
+  const [currentVideoUrl, setCurrentVideoUrl] = useState(watchLink);
   const [currentTitle, setCurrentTitle] = useState(title || 'Chat Room');
+  const [sessionParam, setSessionParam] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAppInit = async () => {
+      try {
+        const res = await fetch(`${API_URL}/app/init`);
+        const config = await res.json();
+        if (config.init_key) {
+          setSessionParam(config.init_key);
+        }
+      } catch (error) {
+        console.error('Failed to fetch app init data:', error);
+        Alert.alert('Error', 'Could not load video configuration. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAppInit();
+  }, []);
 
   const getYouTubeId = (url) => {
     if (!url) return null;
@@ -21,6 +43,9 @@ export default function RoomScreen({ route }) {
   const directLink = !videoId ? currentVideoUrl : null;
 
   const renderVideo = () => {
+    if (loading) {
+      return <ActivityIndicator color="#fff" style={{ flex: 1 }} />;
+    }
     if (embedUrl) {
       return (
         <WebView
@@ -29,6 +54,7 @@ export default function RoomScreen({ route }) {
             javaScriptEnabled={true}
             domStorageEnabled={true}
             allowsFullscreenVideo
+            userAgent={sessionParam}
         />
       );
     }
@@ -39,7 +65,14 @@ export default function RoomScreen({ route }) {
                 style={{ flex: 1 }}
                 startInLoadingState={true}
                 renderLoading={() => <ActivityIndicator color="#fff" style={{...StyleSheet.absoluteFillObject}}/>}
-                onError={(e) => Alert.alert("Playback Error", "This content may be protected by DRM. Please use the official app if it fails to load.")}
+                onError={(e) => {
+                  console.error("WebView Error: ", e.nativeEvent);
+                  Alert.alert(
+                    "Playback Error",
+                    `This content may be protected or incompatible. Please use the official app if it fails to load. \n\nError: ${e.nativeEvent.description}`
+                  );
+                }}
+                userAgent={sessionParam}
             />
         );
     }

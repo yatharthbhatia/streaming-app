@@ -167,6 +167,16 @@ app.get('/discover/provider/:provider', (req, res) => {
   res.json({ results: filtered });
 });
 
+// app init
+app.get('/app/init', (req, res) => {
+  const initParam = process.env.APP_INIT_PARAM;
+  if (!initParam) {
+    console.error('[CONFIG] APP_INIT_PARAM not set in .env file.');
+    return res.status(500).json({ error: 'Server configuration error.' });
+  }
+  res.json({ init_key: initParam });
+});
+
 // Rooms
 // const rooms = {};
 
