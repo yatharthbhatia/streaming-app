@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, FlatList, Platform } from 'react-native';
 // @ts-ignore
 import { WebView } from 'react-native-webview';
 import ChatPanel from '../components/ChatPanel';
+import { disconnectSocket, getSocket } from '../utils/wsClient';
 
 const API_URL = process.env.EXPO_PUBLIC_SOCKET_URL;
 
@@ -12,6 +13,8 @@ export default function RoomScreen({ route }) {
   const [currentTitle, setCurrentTitle] = useState(title || 'Chat Room');
   const [sessionParam, setSessionParam] = useState('');
   const [loading, setLoading] = useState(true);
+  const [messages, setMessages] = useState([]);
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
     const fetchAppInit = async () => {
@@ -30,6 +33,55 @@ export default function RoomScreen({ route }) {
     };
     fetchAppInit();
   }, []);
+
+  useEffect(() => {
+    const initializeSocket = async () => {
+      try {
+        const newSocket = await getSocket();
+        setSocket(newSocket);
+        console.log('Socket initialized:', !!newSocket);
+      } catch (error) {
+        console.error('Failed to initialize socket:', error);
+      }
+    };
+    initializeSocket();
+    return () => {
+      disconnectSocket();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (socket && roomCode) {
+      console.log('Emitting joinRoom', roomCode);
+      socket.emit('joinRoom', { roomCode });
+
+      const handleChatMessage = (message) => {
+        console.log('Received chatMessage:', message);
+        setMessages((prevMessages) => [...prevMessages, message]);
+      };
+
+      const handleUserJoined = ({ username: joinedUsername }) => {
+        if (Platform.OS === 'android' && Platform.isTV) {
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            { sender: 'System', text: `${joinedUsername} has joined the room.` },
+          ]);
+        }
+      };
+
+      socket.on('chatMessage', handleChatMessage);
+      socket.on('userJoined', handleUserJoined);
+
+      return () => {
+        socket.off('chatMessage', handleChatMessage);
+        socket.off('userJoined', handleUserJoined);
+      };
+    }
+  }, [socket, roomCode]);
+
+  // useEffect(() => {
+  //   setMessages([{ sender: 'System', text: 'Test message - should be visible!' }]);
+  // }, []);
 
   const getYouTubeId = (url) => {
     if (!url) return null;
@@ -93,6 +145,24 @@ export default function RoomScreen({ route }) {
         {renderVideo()}
       </View>
       <View style={styles.chatContainer}>
+        {Platform.OS === 'android' && (
+          <View style={{ flex: 1, backgroundColor: '#222' }}>
+            <FlatList
+              data={messages}
+              renderItem={({ item }) => (
+                <Text style={{ color: '#fff', fontSize: 18, margin: 8 }}>
+                  {item.sender}: {item.text}
+                </Text>
+              )}
+              keyExtractor={(_, i) => i.toString()}
+              ListEmptyComponent={
+                <Text style={{ color: '#fff', textAlign: 'center', marginTop: 20 }}>
+                  No messages yet. Start the conversation!
+                </Text>
+              }
+            />
+          </View>
+        )}
         <ChatPanel roomCode={roomCode} username={username} />
       </View>
     </View>
@@ -110,8 +180,10 @@ const styles = StyleSheet.create({
   },
   chatContainer: {
     flex: 1,
-    borderLeftWidth: 1,
+    minHeight: 220,
+    borderTopWidth: 1,
     borderColor: '#303030',
+    backgroundColor: '#181818',
   },
   header: {
     padding: 10,

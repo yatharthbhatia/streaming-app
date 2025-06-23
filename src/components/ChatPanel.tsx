@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, TextInput, Button, FlatList, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TextInput, FlatList, Text, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
 import { getSocket, disconnectSocket } from '../utils/wsClient';
 
 export default function ChatPanel({ roomCode, username }) {
@@ -17,9 +17,7 @@ export default function ChatPanel({ roomCode, username }) {
         console.error('Failed to initialize socket:', error);
       }
     };
-
     initializeSocket();
-
     return () => {
       disconnectSocket();
     };
@@ -28,21 +26,17 @@ export default function ChatPanel({ roomCode, username }) {
   useEffect(() => {
     if (socket && roomCode) {
       socket.emit('joinRoom', { roomCode });
-
       const handleChatMessage = (message) => {
         setMessages((prevMessages) => [...prevMessages, message]);
       };
-
       const handleUserJoined = ({ username: joinedUsername }) => {
         setMessages((prevMessages) => [
           ...prevMessages,
           { sender: 'System', text: `${joinedUsername} has joined the room.` },
         ]);
       };
-
       socket.on('chatMessage', handleChatMessage);
       socket.on('userJoined', handleUserJoined);
-
       return () => {
         socket.off('chatMessage', handleChatMessage);
         socket.off('userJoined', handleUserJoined);
@@ -51,8 +45,8 @@ export default function ChatPanel({ roomCode, username }) {
   }, [socket, roomCode]);
 
   useEffect(() => {
-    if (messages.length > 0) {
-        flatListRef.current?.scrollToEnd({ animated: true });
+    if (messages.length > 0 && flatListRef.current) {
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
     }
   }, [messages]);
 
@@ -70,13 +64,12 @@ export default function ChatPanel({ roomCode, username }) {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
     >
       <FlatList
         ref={flatListRef}
-        data={messages}
+        data={[...messages].reverse()}
         renderItem={({ item }) => (
           <View style={styles.messageContainer}>
             <Text style={styles.messageText}>
@@ -86,7 +79,8 @@ export default function ChatPanel({ roomCode, username }) {
         )}
         keyExtractor={(_, i) => i.toString()}
         style={styles.list}
-        contentContainerStyle={{ paddingBottom: 10 }}
+        contentContainerStyle={{ paddingBottom: 10, flexGrow: 1, justifyContent: 'flex-end' }}
+        inverted
       />
       <View style={styles.inputContainer}>
         <TextInput
@@ -97,7 +91,9 @@ export default function ChatPanel({ roomCode, username }) {
           onSubmitEditing={sendMessage}
           returnKeyType="send"
         />
-        <Button title="Send" onPress={sendMessage} />
+        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+          <Text style={styles.sendButtonText}>Send</Text>
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
@@ -106,7 +102,7 @@ export default function ChatPanel({ roomCode, username }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#181818',
   },
   list: {
     flex: 1,
@@ -118,29 +114,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 10,
     borderTopWidth: 1,
-    borderTopColor: '#ccc',
-    backgroundColor: '#fff',
+    borderTopColor: '#303030',
+    backgroundColor: '#000',
   },
   input: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#ccc',
+    borderWidth: 2,
+    borderColor: '#555',
+    backgroundColor: '#333',
+    color: 'white',
     marginRight: 8,
-    padding: 8,
-    borderRadius: 5,
+    padding: 12,
+    borderRadius: 8,
+    fontSize: 16,
+  },
+  sendButton: {
+    backgroundColor: '#007bff',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  sendButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   messageContainer: {
-    marginBottom: 5,
-    backgroundColor: 'white',
-    padding: 8,
-    borderRadius: 5,
+    marginBottom: 8,
+    backgroundColor: '#252525',
+    padding: 10,
+    borderRadius: 6,
     alignSelf: 'flex-start',
+    maxWidth: '80%',
   },
   messageText: {
-    color: 'black',
+    color: 'white',
+    fontSize: 16,
   },
   senderText: {
     fontWeight: 'bold',
-    color: 'black',
+    color: '#00c1ff',
   },
 });
