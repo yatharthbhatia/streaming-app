@@ -1,16 +1,28 @@
-# SocialRooms TV App
+# SocialRooms
 
-A cross-platform (Android TV, iOS, and web) real-time chat and video sync application. Users can create or join rooms with a unique code, chat in real time, and synchronize video playback across devices. The backend is powered by Node.js and Socket.IO.
+SocialRooms is a cross-platform application designed for Android TV, iOS, and web, allowing users to create shared media-watching experiences. Users can browse movies, create private rooms, and watch content together in sync, with a real-time chat feature to communicate with others in the room.
 
 ---
 
-## Features
+## Key Features
 
-- **Room System:** Create or join rooms with a unique code.
-- **Real-Time Chat:** Chat with other users in the same room.
-- **Video Sync:** Play, pause, and seek video in sync across all users in a room.
-- **Cross-Platform:** Works on Android TV, iOS, and web (via Expo).
-- **WebSocket Backend:** Fast, real-time communication using Socket.IO.
+- **User Authentication:** Secure user registration and login system with JWT-based authentication.
+- **Movie Discovery:** Browse an extensive list of movies, view details, and watch trailers.
+- **Genre-Based Carousels:** Movies are dynamically organized by genre for easy discovery.
+- **Private Watch Rooms:** Create private rooms with a unique, shareable code to watch content with friends.
+- **Real-Time Chat:** A fully-featured chat panel in each room for real-time communication.
+- **Synced Video Playback:** The video player is synchronized between all users in a room.
+- **Optimized for Android TV:** The UI is designed to be fully navigable with a D-pad, providing a seamless TV experience.
+
+---
+
+## Tech Stack
+
+- **Frontend:** React Native, Expo
+- **Backend:** Node.js, Express, Socket.IO
+- **Database:** PostgreSQL
+- **Styling:** React Native Stylesheets with platform-specific adjustments.
+- **Navigation:** React Navigation
 
 ---
 
@@ -20,91 +32,109 @@ A cross-platform (Android TV, iOS, and web) real-time chat and video sync applic
 /backend              # Node.js backend (Express + Socket.IO)
 /src
   /components         # Reusable UI components (VideoPlayer, ChatPanel)
-  /screens            # App screens (HomeScreen, RoomScreen)
+  /screens            # App screens (Login, Home, Room)
   /utils              # Utility modules (wsClient)
-App.tsx               # Main app entry (navigation)
-babel.config.js       # Babel config (with env and NativeWind support)
-package.json          # Project dependencies and scripts
-.env                  # Environment variables (SOCKET_URL)
+/assets               # Static assets like images and fonts
+schema.sql            # SQL schema for the PostgreSQL database
+App.tsx               # Main app entry (navigation setup)
 ```
 
 ---
 
 ## Getting Started
 
+### Prerequisites
+
+- Node.js
+- pnpm (or npm/yarn)
+- PostgreSQL installed and running.
+
 ### 1. Clone the Repository
 
 ```sh
-git clone https://github.com/yatharthbhatia/streaming-app
-cd SocialRooms
+git clone https://github.com/yatharthbhatia/streaming-app.git
+cd streaming-app
 ```
 
-### 2. Install Dependencies
-
-#### TV App (Root Directory)
+### 2. Backend Setup
 
 ```sh
-pnpm install
-```
-
-#### Backend
-
-```sh
+# Navigate to the backend directory
 cd backend
-npm install
+
+# Install dependencies
+pnpm install
+
+# Create a .env file and add the following variables
+touch .env
 ```
 
-### 3. Configure Environment Variables
+**`.env` file contents:**
 
-Create a `.env` file in the root directory:
+```env
+# Connection string for your PostgreSQL database
+PG_CONNECTION_STRING="postgresql://USERNAME:PASSWORD@HOST:PORT/DATABASE_NAME"
 
+# Secret key for signing JWT tokens
+JWT_SECRET="YOUR_SUPER_SECRET_KEY"
 ```
-API_URL=http://<YOUR_LOCAL_IP>:3000
-```
-Replace `<YOUR_LOCAL_IP>` with your computer's local IP address (e.g., `192.168.1.13`).
 
-### 4. Start the Backend
+**Set up the database:**
+
+1.  Connect to your PostgreSQL instance.
+2.  Create a new database.
+3.  Run the `schema.sql` file located in the root of the project to create the necessary tables.
+
+**Start the backend server:**
 
 ```sh
 cd backend
 pnpm start
 ```
-The backend will run on `http://<YOUR_LOCAL_IP>:3000`.
 
-### 5. Start the TV App
-
-In a new terminal, from the project root:
+### 3. Frontend Setup
 
 ```sh
-pnpm start expo -a
+# From the root directory, install dependencies
+pnpm install
+
+# Create a .env file in the root directory
+touch .env
 ```
-Use Expo to run the app on Android TV, iOS, or web.
+
+**`.env` file contents:**
+
+```env
+# The URL of your running backend server
+EXPO_PUBLIC_SOCKET_URL="http://<YOUR_LOCAL_IP>:3000"
+```
+
+Replace `<YOUR_LOCAL_IP>` with your computer's local IP address (e.g., `192.168.1.13`).
+
+**Start the frontend app:**
+
+```sh
+# Run on Android, iOS, or web
+pnpm start expo
+```
 
 ---
 
-## Usage
+## API Endpoints & WebSocket Events
 
-1. **Create a Room:** On one device, click "Create Room" to generate a unique code.
-2. **Join a Room:** On another device, enter the code and click "Join Room".
-3. **Chat:** Send messages in real time.
-4. **Video Sync:** Load a sample video and use play/pause/seek controls to synchronize playback across all users in the room.
+### Backend API
+
+-   `POST /register`: Create a new user account.
+-   `POST /login`: Log in a user and receive a JWT token.
+-   `POST /room`: Create a new room (requires authentication).
+-   `GET /room/:code`: Get details for an existing room.
+-   `GET /movies`: Get a list of all movies.
+
+### WebSocket Events
+
+-   `joinRoom`: Join a room with a specific `roomCode`.
+-   `chatMessage`: Send or receive a chat message.
+-   `videoEvent`: Send or receive video playback events for synchronization.
+-   `userJoined`: Broadcasts when a new user joins a room.
 
 ---
-
-## Backend Overview
-
-- **POST /room:** Create a new room, returns a unique code.
-- **WebSocket Events:**
-  - `joinRoom`: Join a room by code.
-  - `chatMessage`: Send/receive chat messages.
-  - `videoEvent`: Sync video playback (play, pause, seek).
-
----
-
-## Scripts
-
-- `pnpm start expo -a` - Start the Expo app
-- `pnpm run android` - Run on Android TV
-- `pnpm run ios` - Run on iOS
-- `pnpm run web` - Run on web
-- `cd backend && pnpm start` - Start the backend server
