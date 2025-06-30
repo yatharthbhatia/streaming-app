@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, FlatList, Platform } from 'react-native';
-// @ts-ignore
-import { WebView } from 'react-native-webview';
+import VideoPlayer from '../components/VideoPlayer';
 import ChatPanel from '../components/ChatPanel';
 import { disconnectSocket, getSocket } from '../utils/wsClient';
 
@@ -15,6 +14,7 @@ export default function RoomScreen({ route }) {
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState([]);
   const [socket, setSocket] = useState(null);
+  const [videoLogs, setVideoLogs] = useState([]);
 
   useEffect(() => {
     const fetchAppInit = async () => {
@@ -79,9 +79,33 @@ export default function RoomScreen({ route }) {
     }
   }, [socket, roomCode]);
 
-  // useEffect(() => {
-  //   setMessages([{ sender: 'System', text: 'Test message - should be visible!' }]);
-  // }, []);
+  const handleVideoLog = async (logData) => {
+    console.log('📹 Video log received in RoomScreen:', logData);
+    
+    // update local logs
+    setVideoLogs(prev => [...prev, logData]);
+    
+    // send to backend server
+    try {
+      const response = await fetch(`${API_URL}/api/logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...logData,
+          roomCode,
+          username
+        })
+      });
+      
+      if (response.ok) {
+        console.log('✅ Video log sent to backend successfully');
+      } else {
+        console.error('❌ Failed to send video log to backend:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ Error sending video log to backend:', error);
+    }
+  };
 
   const getYouTubeId = (url) => {
     if (!url) return null;
@@ -98,40 +122,14 @@ export default function RoomScreen({ route }) {
     if (loading) {
       return <ActivityIndicator color="#fff" style={{ flex: 1 }} />;
     }
-    if (embedUrl) {
-      return (
-        <WebView
-            source={{ uri: embedUrl }}
-            style={{ flex: 1 }}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            allowsFullscreenVideo
-            userAgent={sessionParam}
-        />
-      );
-    }
-    if (directLink) {
-        return (
-            <WebView
-                source={{ uri: directLink }}
-                style={{ flex: 1 }}
-                startInLoadingState={true}
-                renderLoading={() => <ActivityIndicator color="#fff" style={{...StyleSheet.absoluteFillObject}}/>}
-                onError={(e) => {
-                  console.error("WebView Error: ", e.nativeEvent);
-                  Alert.alert(
-                    "Playback Error",
-                    `This content may be protected or incompatible. Please use the official app if it fails to load. \n\nError: ${e.nativeEvent.description}`
-                  );
-                }}
-                userAgent={sessionParam}
-            />
-        );
-    }
+    
     return (
-        <View style={styles.noVideoContainer}>
-            <Text style={styles.noVideoText}>No video selected. Enjoy the chat!</Text>
-        </View>
+      <VideoPlayer
+        roomCode={roomCode}
+        watchUrl={currentVideoUrl}
+        sessionParam={sessionParam}
+        onVideoLog={handleVideoLog}
+      />
     );
   };
 

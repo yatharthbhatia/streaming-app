@@ -32,3 +32,15 @@ CREATE TABLE room_users (
     joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(room_code, user_id)
 );
+
+CREATE TABLE video_logs (
+    id SERIAL PRIMARY KEY,
+    room_code VARCHAR(10) NOT NULL,
+    username VARCHAR(255) NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    time_position VARCHAR(20),
+    service VARCHAR(100),
+    url TEXT,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

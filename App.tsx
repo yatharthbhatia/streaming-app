@@ -5,6 +5,12 @@ import HomeScreen from './src/screens/HomeScreen';
 import RoomScreen from './src/screens/RoomScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import AuthLoadingScreen from './src/screens/AuthLoadingScreen';
+import { LogBox } from 'react-native';
+
+// dev -> to ignored warnings
+LogBox.ignoreLogs([
+  "Can't open url: about:srcdoc"
+]);
 
 const Stack = createStackNavigator();
 

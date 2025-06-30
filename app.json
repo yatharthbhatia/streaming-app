@@ -23,6 +23,8 @@
       "expo-secure-store"
     ],
     "android": {
+      "package": "com.socialrooms.app",
+      "versionCode": 1,
       "edgeToEdgeEnabled": true,
       "splash": {
         "image": "./assets/images/icon-1920x720.png"
@@ -39,6 +41,16 @@
             { "scheme": "http" }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
+      "usesFeature": [
+        {
+          "name": "android.hardware.touchscreen",
+          "required": false
+        },
+        {
+          "name": "android.software.leanback",
+          "required": true
         }
       ]
     },
