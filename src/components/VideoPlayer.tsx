@@ -42,7 +42,7 @@ export default function VideoPlayer({ roomCode, watchUrl, sessionParam, onVideoL
         controlsColor: '#000000',
         toolbarColor: '#ffffff',
       });
-    } catch (error) {
+      } catch (error) {
       Alert.alert('Error', 'Could not open the browser.');
     } finally {
       setLoading(false);
@@ -172,44 +172,6 @@ export default function VideoPlayer({ roomCode, watchUrl, sessionParam, onVideoL
                 // Handle web page msgs
                 console.log('WebView message:', event.nativeEvent.data);
               }}
-              // injectedJavaScript={`
-              //   (function() {
-              //     // Remove overlays/popups
-              //     const removeOverlays = () => {
-              //       const overlays = document.querySelectorAll('[class*="overlay"], [class*="popup"], [class*="modal"], [id*="overlay"], [id*="popup"]');
-              //       overlays.forEach(el => {
-              //         if (el.style.position === 'fixed' || el.style.position === 'absolute') {
-              //           el.style.display = 'none';
-              //         }
-              //       });
-              //     };
-              //     const enhanceVideoPlayer = () => {
-              //       const videos = document.querySelectorAll('video');
-              //       videos.forEach(video => {
-              //         video.setAttribute('controls', 'true');
-              //         video.setAttribute('preload', 'metadata');
-              //         video.style.maxWidth = '100%';
-              //         video.style.height = 'auto';
-              //       });
-              //     };
-              //     removeOverlays();
-              //     enhanceVideoPlayer();
-              //     setInterval(() => {
-              //       removeOverlays();
-              //       enhanceVideoPlayer();
-              //     }, 2000);
-              //     document.addEventListener('contextmenu', function(e) {
-              //       e.preventDefault();
-              //     });
-              //     document.addEventListener('fullscreenchange', function() {
-              //       window.ReactNativeWebView.postMessage(JSON.stringify({
-              //         type: 'fullscreen',
-              //         isFullscreen: !!document.fullscreenElement
-              //       }));
-              //     });
-              //     true;
-              //   })();
-              // `}
             />
           </View>
           <View style={styles.buttonContainer}>

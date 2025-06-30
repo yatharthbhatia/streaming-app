@@ -142,7 +142,7 @@ export default function RoomScreen({ route }) {
         </View>
         {renderVideo()}
       </View>
-      <View style={styles.chatContainer}>
+      {/* <View style={styles.chatContainer}>
         {Platform.OS === 'android' && (
           <View style={{ flex: 1, backgroundColor: '#222' }}>
             <FlatList
@@ -160,10 +160,9 @@ export default function RoomScreen({ route }) {
               }
             />
           </View>
-        )}
+        )} */}
         <ChatPanel roomCode={roomCode} username={username} />
       </View>
-    </View>
   );
 }
 
