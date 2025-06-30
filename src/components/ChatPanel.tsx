@@ -62,6 +62,36 @@ export default function ChatPanel({ roomCode, username }) {
     }
   };
 
+  // message rendering
+  const renderItem = ({ item }) => {
+    const isMe = item.sender === username;
+    const isSystem = item.sender === 'System';
+    return (
+      <View
+        style={[
+          styles.bubbleContainer,
+          isMe ? styles.bubbleContainerRight : styles.bubbleContainerLeft,
+        ]}
+      >
+        <View
+          style={[
+            styles.bubble,
+            isMe
+              ? styles.bubbleRight
+              : isSystem
+              ? styles.bubbleSystem
+              : styles.bubbleLeft,
+          ]}
+        >
+          {!isMe && !isSystem && (
+            <Text style={styles.senderName}>{item.sender}</Text>
+          )}
+          <Text style={isSystem ? styles.systemText : styles.messageText}>{item.text}</Text>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -70,13 +100,7 @@ export default function ChatPanel({ roomCode, username }) {
       <FlatList
         ref={flatListRef}
         data={[...messages].reverse()}
-        renderItem={({ item }) => (
-          <View style={styles.messageContainer}>
-            <Text style={styles.messageText}>
-              <Text style={styles.senderText}>{item.sender}:</Text> {item.text}
-            </Text>
-          </View>
-        )}
+        renderItem={renderItem}
         keyExtractor={(_, i) => i.toString()}
         style={styles.list}
         contentContainerStyle={{ paddingBottom: 10, flexGrow: 1, justifyContent: 'flex-end' }}
@@ -109,6 +133,62 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingTop: 10,
   },
+  bubbleContainer: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    alignItems: 'flex-end',
+  },
+  bubbleContainerRight: {
+    justifyContent: 'flex-end',
+  },
+  bubbleContainerLeft: {
+    justifyContent: 'flex-start',
+  },
+  bubble: {
+    maxWidth: '80%',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    marginHorizontal: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  bubbleRight: {
+    backgroundColor: '#F0F0F0',
+    alignSelf: 'flex-end',
+    borderBottomRightRadius: 6,
+  },
+  bubbleLeft: {
+    backgroundColor: '#E4E6EB',
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 6,
+  },
+  bubbleSystem: {
+    backgroundColor: '#333',
+    alignSelf: 'flex-start',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#888',
+    marginTop: 4,
+  },
+  messageText: {
+    color: '#222',
+    fontSize: 16,
+  },
+  systemText: {
+    color: '#fff',
+    fontSize: 15,
+    fontStyle: 'italic',
+  },
+  senderName: {
+    color: '#333',
+    fontWeight: 'bold',
+    fontSize: 13,
+    marginBottom: 2,
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -138,21 +218,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
-  },
-  messageContainer: {
-    marginBottom: 8,
-    backgroundColor: '#252525',
-    padding: 10,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    maxWidth: '80%',
-  },
-  messageText: {
-    color: 'white',
-    fontSize: 16,
-  },
-  senderText: {
-    fontWeight: 'bold',
-    color: '#00c1ff',
   },
 });
