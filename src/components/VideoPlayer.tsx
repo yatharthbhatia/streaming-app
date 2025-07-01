@@ -2,10 +2,188 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Alert, Button, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as WebBrowser from 'expo-web-browser';
+import { sendVideoLogToBackend } from '../utils/videoLogger';
 
 const API_URL = process.env.EXPO_PUBLIC_SOCKET_URL;
 
-export default function VideoPlayer({ roomCode, watchUrl, sessionParam, onVideoLog }) {
+const VIDEO_LOGGER_SCRIPT = `
+(function mergedVideoLogger() {
+    // --- Utility functions ---
+    function formatTime(s) {
+      const h = String(Math.floor(s / 3600)).padStart(2, '0');
+      const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+      const sec = String(Math.floor(s % 60)).padStart(2, '0');
+      return \`\${h}:\${m}:\${sec}\`;
+    }
+  
+    function timeStrToSeconds(t) {
+      if (!t) return null;
+      const parts = t.split(':').map(Number);
+      if (parts.length === 3) {
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      } else if (parts.length === 2) {
+        return parts[0] * 60 + parts[1];
+      }
+      return null;
+    }
+  
+    // --- Prime Video specific ---
+    function getPrimeUITime() {
+      const el = document.querySelector('.atvwebplayersdk-timeindicator-text');
+      if (!el) return null;
+      const text = el.textContent.trim();
+      const match = text.match(/^\\d{1,2}:\\d{2}(?::\\d{2})?/);
+      return match ? match[0] : null;
+    }
+  
+    // --- Netflix specific ---
+    function isNetflix() {
+      return !!document.querySelector('.nf-player-container, .VideoContainer, .watch-video');
+    }
+  
+    function isPrimeVideo() {
+      return !!document.querySelector('.atvwebplayersdk-timeindicator-text, .PrimeVideo');
+    }
+  
+    function getServiceName() {
+      if (isPrimeVideo()) return 'Prime Video';
+      if (isNetflix()) return 'Netflix';
+      // Fallback: check URL
+      const url = window.location.href;
+      if (url.includes('primevideo.com')) return 'Prime Video';
+      if (url.includes('netflix.com')) return 'Netflix';
+      return 'Unknown';
+    }
+  
+    function getVideoTitle(platform) {
+      if (platform === 'prime') {
+        const el = document.querySelector('.atvwebplayersdk-title-text, .atvwebplayersdk-title-label');
+        if (el) return el.textContent.trim();
+      } else if (platform === 'netflix') {
+        let el = document.querySelector('.video-title, h4[data-uia="video-title"]');
+        if (el) return el.textContent.trim();
+        el = document.querySelector('.ellipsize-text, .previewModal--player-titleTreatment-logo');
+        if (el) return el.textContent.trim();
+      }
+      return '(Unknown Title)';
+    }
+  
+    // --- Logger attachment ---
+    let lastStates = new WeakMap();
+    let attachedVideos = new WeakMap();
+    let lastTimes = new WeakMap();
+  
+    // --- Backend logging ---
+    function sendLogToBackend(data) {
+      const now = new Date();
+      const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+      const istTimestamp = istTime.toISOString();
+      
+      const payload = {
+        ...data,
+        timestamp: istTimestamp
+      };
+      
+      console.log('📤 Sending to backend:', payload);
+      
+      // Send to React Native bridge
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'VIDEO_LOG',
+          data: payload
+        }));
+      }
+    }
+  
+    function attachLogger(video, platform) {
+      if (attachedVideos.has(video)) return;
+      attachedVideos.set(video, true);
+      lastStates.set(video, null);
+      lastTimes.set(video, 0);
+      console.log(\`🔍 Attached logger to video (\${platform})\`);
+  
+      function logEvent(type, seekData = null) {
+        let uiTimeStr = null;
+        let url = window.location.href;
+        const service = getServiceName();
+        if (platform === 'prime') {
+          const match = url.match(/https:\\/\\/www\\.primevideo\\.com\\/(?:region\\/[a-z]{2}\\/)?detail\\/([A-Z0-9]+)/);
+          if (match) {
+            url = \`https://www.primevideo.com/detail/\${match[1]}\`;
+          }
+          uiTimeStr = getPrimeUITime();
+          if (seekData) {
+            console.log(\`⏭️ Seek from \${formatTime(seekData.from)} to \${formatTime(seekData.to)} | Service: \${service} | URL: \${url}\`);
+            sendLogToBackend({ event: 'seek', time: \`\${formatTime(seekData.from)} → \${formatTime(seekData.to)}\`, service, url, seekData });
+          } else {
+            console.log(\`\${type === 'play' ? '▶️' : '⏸️'} \${type[0].toUpperCase() + type.slice(1)} at UI: \${uiTimeStr || '—'} | Service: \${service} | URL: \${url}\`);
+            sendLogToBackend({ event: type, time: uiTimeStr || '—', service, url });
+          }
+        } else {
+          const match = url.match(/^(https:\\/\\/www\\.netflix\\.com\\/watch\\/\\d+)/);
+          if (match) url = match[1];
+          const ct = video.currentTime;
+          if (seekData) {
+            console.log(\`⏭️ Seek from \${formatTime(seekData.from)} to \${formatTime(seekData.to)} | Service: \${service} | URL: \${url}\`);
+            sendLogToBackend({ event: 'seek', time: \`\${formatTime(seekData.from)} → \${formatTime(seekData.to)}\`, service, url, seekData });
+          } else {
+            console.log(\`\${type === 'play' ? '▶️' : '⏸️'} \${type[0].toUpperCase() + type.slice(1)} at UI: \${formatTime(ct)} | Service: \${service} | URL: \${url}\`);
+            sendLogToBackend({ event: type, time: formatTime(ct), service, url });
+          }
+        }
+      }
+  
+      video.addEventListener('play', () => {
+        const prev = lastStates.get(video);
+        if (prev !== 'play') {
+          logEvent('play');
+          lastStates.set(video, 'play');
+        }
+      });
+      video.addEventListener('pause', () => {
+        const prev = lastStates.get(video);
+        if (prev !== 'pause') {
+          logEvent('pause');
+          lastStates.set(video, 'pause');
+        }
+      });
+      video.addEventListener('timeupdate', () => {
+        const currentTime = video.currentTime;
+        const lastTime = lastTimes.get(video);
+        if (lastTime > 0 && Math.abs(currentTime - lastTime) > 1) {
+          const seekData = {
+            from: lastTime,
+            to: currentTime,
+            direction: currentTime > lastTime ? 'forward' : 'backward',
+            distance: Math.abs(currentTime - lastTime)
+          };
+          logEvent('seek', seekData);
+        }
+        lastTimes.set(video, currentTime);
+      });
+    }
+  
+    function scanAndAttach() {
+      document.querySelectorAll('video').forEach(video => {
+        if (isPrimeVideo()) {
+          attachLogger(video, 'prime');
+        } else if (isNetflix()) {
+          attachLogger(video, 'netflix');
+        } else {
+          attachLogger(video, 'netflix');
+        }
+      });
+    }
+  
+    // --- Observe DOM changes ---
+    const observer = new MutationObserver(scanAndAttach);
+    observer.observe(document.body, { childList: true, subtree: true });
+    setInterval(scanAndAttach, 1000);
+  
+    console.log('✅ Merged Netflix/Prime Video logger is active!');
+})();`;
+
+export default function VideoPlayer({ roomCode, watchUrl, sessionParam, onVideoLog, username}) {
   const [loading, setLoading] = useState(false);
   const [webViewLoading, setWebViewLoading] = useState(true);
   const webViewRef = useRef(null);
@@ -168,19 +346,31 @@ export default function VideoPlayer({ roomCode, watchUrl, sessionParam, onVideoL
               allowFileAccess={true}
               allowFileAccessFromFileURLs={true}
               allowUniversalAccessFromFileURLs={true}
-              onMessage={(event) => {
-                // Handle web page msgs
-                console.log('WebView message:', event.nativeEvent.data);
+              injectedJavaScript={VIDEO_LOGGER_SCRIPT}
+              onMessage={async (event) => {
+                try {
+                  const msg = JSON.parse(event.nativeEvent.data);
+                  if (msg.type === 'VIDEO_LOG') {
+                    const logData = {
+                      ...msg.data,
+                      roomCode,
+                      username,
+                    };
+                    await sendVideoLogToBackend(logData);
+                  }
+                } catch (e) {
+                  console.error('Failed to handle WebView message:', e);
+                }
               }}
             />
           </View>
-          <View style={styles.buttonContainer}>
+          {/* <View style={styles.buttonContainer}>
             <Button 
               title={loading ? "Opening..." : "Open in External Browser"} 
               onPress={handleOpenInBrowser}
               disabled={loading}
             />
-          </View>
+          </View> */}
         </>
       ) : (
         <View style={styles.noVideoContainer}>

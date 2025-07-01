@@ -60,21 +60,10 @@ export default function RoomScreen({ route }) {
         setMessages((prevMessages) => [...prevMessages, message]);
       };
 
-      const handleUserJoined = ({ username: joinedUsername }) => {
-        if (Platform.OS === 'android' && Platform.isTV) {
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { sender: 'System', text: `${joinedUsername} has joined the room.` },
-          ]);
-        }
-      };
-
       socket.on('chatMessage', handleChatMessage);
-      socket.on('userJoined', handleUserJoined);
 
       return () => {
         socket.off('chatMessage', handleChatMessage);
-        socket.off('userJoined', handleUserJoined);
       };
     }
   }, [socket, roomCode]);
@@ -127,6 +116,7 @@ export default function RoomScreen({ route }) {
       <VideoPlayer
         roomCode={roomCode}
         watchUrl={currentVideoUrl}
+        username={username}
         sessionParam={sessionParam}
         onVideoLog={handleVideoLog}
       />

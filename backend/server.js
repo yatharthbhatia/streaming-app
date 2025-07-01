@@ -10,6 +10,7 @@ import axios from 'axios';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import bodyParser from 'body-parser';
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ const pool = new Pool({
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(bodyParser.json());
 
 // Auth Middleware
 io.use((socket, next) => {

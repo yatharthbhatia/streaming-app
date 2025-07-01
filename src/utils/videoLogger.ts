@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 
 const API_URL = process.env.EXPO_PUBLIC_SOCKET_URL;
 
@@ -72,4 +71,4 @@ export const getServiceFromUrl = (url: string): string => {
   if (url.includes('hbomax.com')) return 'HBO Max';
   if (url.includes('hulu.com')) return 'Hulu';
   return 'Unknown';
-}; 
+};
