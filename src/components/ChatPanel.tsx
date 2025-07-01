@@ -7,7 +7,7 @@ const isAndroidTV = Platform.OS === 'android' && Platform.isTV;
 const placeholder1 = 'https://ui-avatars.com/api/?name=User+1&background=0D8ABC&color=fff&size=128';
 const placeholder2 = 'https://ui-avatars.com/api/?name=User+2&background=F39C12&color=fff&size=128';
 
-export default function ChatPanel({ roomCode, username, users = ['User 1', 'User 2'] }) {
+export default function ChatPanel({ roomCode, username, users = ['User 1', 'User 2'], onSeekRequest }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [socket, setSocket] = useState(null);
@@ -55,6 +55,36 @@ export default function ChatPanel({ roomCode, username, users = ['User 1', 'User
       flatListRef.current.scrollToOffset({ offset: 0, animated: true });
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleVideoLog = (log) => {
+      if (log.event === 'seek') {
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'System',
+            text: `${log.username} seeked from ${log.seekData ? formatTime(log.seekData.from) : log.time} to ${log.seekData ? formatTime(log.seekData.to) : log.time}`,
+            seekPrompt: {
+              to: log.seekData ? formatTime(log.seekData.to) : log.time,
+              from: log.seekData ? formatTime(log.seekData.from) : log.time,
+              username: log.username,
+            },
+          },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'System',
+            text: `${log.username} ${log.event === 'play' ? 'played' : log.event === 'pause' ? 'paused' : log.event} at ${log.time}`,
+          },
+        ]);
+      }
+    };
+    socket.on('videoLog', handleVideoLog);
+    return () => socket.off('videoLog', handleVideoLog);
+  }, [socket]);
 
   const sendMessage = () => {
     if (input.trim() && socket) {
@@ -112,6 +142,23 @@ export default function ChatPanel({ roomCode, username, users = ['User 1', 'User
           >
             {item.text}
           </Text>
+          {/* seek prompts for others */}
+          {item.seekPrompt && item.seekPrompt.username !== username && (
+            <View style={{ flexDirection: 'row', marginTop: 8 }}>
+              <TouchableOpacity
+                style={{ marginRight: 10, backgroundColor: '#2e7d32', padding: 6, borderRadius: 4 }}
+                onPress={() => onSeekRequest && onSeekRequest(item.seekPrompt.to)}
+              >
+                <Text style={{ color: '#fff' }}>OK</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ backgroundColor: '#b71c1c', padding: 6, borderRadius: 4 }}
+                onPress={() => { }}
+              >
+                <Text style={{ color: '#fff' }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     );
@@ -216,6 +263,23 @@ export default function ChatPanel({ roomCode, username, users = ['User 1', 'User
                       >
                         {item.text}
                       </Text>
+                        {/* seek prompts for others (android tv) */}                      
+                        {item.seekPrompt && item.seekPrompt.username !== username && (
+                        <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                          <TouchableOpacity
+                            style={{ marginRight: 10, backgroundColor: '#2e7d32', padding: 6, borderRadius: 4 }}
+                            onPress={() => onSeekRequest && onSeekRequest(item.seekPrompt.to)}
+                          >
+                            <Text style={{ color: '#fff' }}>OK</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={{ backgroundColor: '#b71c1c', padding: 6, borderRadius: 4 }}
+                            onPress={() => { }}
+                          >
+                            <Text style={{ color: '#fff' }}>Cancel</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
                     </View>
                   </View>
                 );
@@ -415,3 +479,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+// time -> human-readable format
+function formatTime(s) {
+  s = Number(s);
+  const h = String(Math.floor(s / 3600)).padStart(2, '0');
+  const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+  const sec = String(Math.floor(s % 60)).padStart(2, '0');
+  return `${h}:${m}:${sec}`;
+}

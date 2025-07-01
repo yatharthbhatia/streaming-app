@@ -182,7 +182,7 @@ app.get('/app/init', (req, res) => {
 // client -> server: video log
 app.post('/api/logs', async (req, res) => {
   try {
-    const { event, time, service, url, roomCode, username, timestamp } = req.body;
+    const { event, time, service, url, roomCode, username, timestamp, seekData } = req.body;
     
     console.log(`[VIDEO_LOG] ${event} at ${time} | Service: ${service} | Room: ${roomCode} | User: ${username}`);
     
@@ -190,6 +190,18 @@ app.post('/api/logs', async (req, res) => {
       'INSERT INTO video_logs (room_code, username, event_type, time_position, service, url, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [roomCode, username, event, time, service, url, timestamp || new Date().toISOString()]
     );
+    
+    // videoLog event -> room (emit)
+    io.to(roomCode).emit('videoLog', {
+      event,
+      time,
+      service,
+      url,
+      roomCode,
+      username,
+      timestamp,
+      seekData
+    });
     
     res.json({ success: true, message: 'Video log recorded successfully' });
   } catch (err) {

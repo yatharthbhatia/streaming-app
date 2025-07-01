@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, FlatList, Platform } from 'react-native';
 import VideoPlayer from '../components/VideoPlayer';
 import ChatPanel from '../components/ChatPanel';
@@ -15,6 +15,7 @@ export default function RoomScreen({ route }) {
   const [messages, setMessages] = useState([]);
   const [socket, setSocket] = useState(null);
   const [videoLogs, setVideoLogs] = useState([]);
+  const webViewRef = useRef(null);
 
   useEffect(() => {
     const fetchAppInit = async () => {
@@ -107,6 +108,24 @@ export default function RoomScreen({ route }) {
   const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : null;
   const directLink = !videoId ? currentVideoUrl : null;
 
+  const handleSeekFromChat = (timestamp) => {
+    const js = `
+      (function() {
+        const timeStrToSeconds = t => {
+          const parts = t.split(':').map(Number);
+          if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+          if (parts.length === 2) return parts[0] * 60 + parts[1];
+          return 0;
+        };
+        const timeInSeconds = timeStrToSeconds('${timestamp}');
+        document.querySelectorAll('video').forEach(video => {
+          video.currentTime = timeInSeconds;
+        });
+      })();
+    `;
+    webViewRef.current?.injectJavaScript(js);
+  };
+
   const renderVideo = () => {
     if (loading) {
       return <ActivityIndicator color="#fff" style={{ flex: 1 }} />;
@@ -119,6 +138,7 @@ export default function RoomScreen({ route }) {
         username={username}
         sessionParam={sessionParam}
         onVideoLog={handleVideoLog}
+        onSeekRequest={handleSeekFromChat}
       />
     );
   };
@@ -151,8 +171,14 @@ export default function RoomScreen({ route }) {
             />
           </View>
         )} */}
-        <ChatPanel roomCode={roomCode} username={username} />
+      <View style={styles.chatContainer}>
+        <ChatPanel
+          roomCode={roomCode}
+          username={username}
+          onSeekRequest={handleSeekFromChat}
+        />
       </View>
+    </View>
   );
 }
 

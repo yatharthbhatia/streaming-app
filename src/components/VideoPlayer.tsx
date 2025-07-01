@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Alert, Button, ActivityIndicator, TouchableOpac
 import { WebView } from 'react-native-webview';
 import * as WebBrowser from 'expo-web-browser';
 import { sendVideoLogToBackend } from '../utils/videoLogger';
+import ChatPanel from './ChatPanel';
 
 const API_URL = process.env.EXPO_PUBLIC_SOCKET_URL;
 
@@ -183,7 +184,7 @@ const VIDEO_LOGGER_SCRIPT = `
     console.log('✅ Merged Netflix/Prime Video logger is active!');
 })();`;
 
-export default function VideoPlayer({ roomCode, watchUrl, sessionParam, onVideoLog, username}) {
+export default function VideoPlayer({ roomCode, watchUrl, sessionParam, onVideoLog, username, onSeekRequest }) {
   const [loading, setLoading] = useState(false);
   const [webViewLoading, setWebViewLoading] = useState(true);
   const webViewRef = useRef(null);
@@ -371,6 +372,11 @@ export default function VideoPlayer({ roomCode, watchUrl, sessionParam, onVideoL
               disabled={loading}
             />
           </View> */}
+          {/* <ChatPanel
+            roomCode={roomCode}
+            username={username}
+            onSeekRequest={handleSeekFromChat}
+          /> */}
         </>
       ) : (
         <View style={styles.noVideoContainer}>
