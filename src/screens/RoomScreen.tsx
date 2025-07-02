@@ -7,6 +7,8 @@ import { disconnectSocket, getSocket } from '../utils/wsClient';
 
 const API_URL = process.env.EXPO_PUBLIC_SOCKET_URL;
 
+const API_URL = process.env.EXPO_PUBLIC_SOCKET_URL;
+
 export default function RoomScreen({ route }) {
   const { roomCode, username, watchLink, title } = route.params;
   const [currentVideoUrl, setCurrentVideoUrl] = useState(watchLink);
@@ -15,6 +17,7 @@ export default function RoomScreen({ route }) {
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState([]);
   const [socket, setSocket] = useState(null);
+
 
   useEffect(() => {
     const fetchAppInit = async () => {
@@ -82,6 +85,7 @@ export default function RoomScreen({ route }) {
   // useEffect(() => {
   //   setMessages([{ sender: 'System', text: 'Test message - should be visible!' }]);
   // }, []);
+
 
   const getYouTubeId = (url) => {
     if (!url) return null;
