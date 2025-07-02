@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, TextInput, FlatList, Text, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, TextInput, FlatList, Text, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { getSocket, disconnectSocket } from '../utils/wsClient';
 
-export default function ChatPanel({ roomCode, username }) {
+const isAndroidTV = Platform.OS === 'android' && Platform.isTV;
+
+const placeholder1 = 'https://ui-avatars.com/api/?name=User+1&background=0D8ABC&color=fff&size=128';
+const placeholder2 = 'https://ui-avatars.com/api/?name=User+2&background=F39C12&color=fff&size=128';
+
+export default function ChatPanel({ roomCode, username, users = ['User 1', 'User 2'], onSeekRequest }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [socket, setSocket] = useState(null);
   const flatListRef = useRef(null);
+  const [view, setView] = useState('chat');
 
   useEffect(() => {
     const initializeSocket = async () => {
@@ -50,6 +56,36 @@ export default function ChatPanel({ roomCode, username }) {
     }
   }, [messages]);
 
+  useEffect(() => {
+    if (!socket) return;
+    const handleVideoLog = (log) => {
+      if (log.event === 'seek') {
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'System',
+            text: `${log.username} seeked from ${log.seekData ? formatTime(log.seekData.from) : log.time} to ${log.seekData ? formatTime(log.seekData.to) : log.time}`,
+            seekPrompt: {
+              to: log.seekData ? formatTime(log.seekData.to) : log.time,
+              from: log.seekData ? formatTime(log.seekData.from) : log.time,
+              username: log.username,
+            },
+          },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'System',
+            text: `${log.username} ${log.event === 'play' ? 'played' : log.event === 'pause' ? 'paused' : log.event} at ${log.time}`,
+          },
+        ]);
+      }
+    };
+    socket.on('videoLog', handleVideoLog);
+    return () => socket.off('videoLog', handleVideoLog);
+  }, [socket]);
+
   const sendMessage = () => {
     if (input.trim() && socket) {
       const messagePayload = {
@@ -62,52 +98,355 @@ export default function ChatPanel({ roomCode, username }) {
     }
   };
 
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.container}
-    >
-      <FlatList
-        ref={flatListRef}
-        data={[...messages].reverse()}
-        renderItem={({ item }) => (
-          <View style={styles.messageContainer}>
-            <Text style={styles.messageText}>
-              <Text style={styles.senderText}>{item.sender}:</Text> {item.text}
+  // bubble rendering -> chat messages (custom)
+  const renderItem = ({ item }) => {
+    const isMe = item.sender === username;
+    const isSystem = item.sender === 'System';
+    return (
+      <View
+        style={[
+          styles.bubbleContainer,
+          isMe ? styles.bubbleContainerRight : styles.bubbleContainerLeft,
+          isSystem && { alignSelf: 'center' },
+        ]}
+      >
+        <View
+          style={[
+            styles.bubble,
+            isMe
+              ? styles.bubbleRight
+              : isSystem
+              ? styles.bubbleSystem
+              : styles.bubbleLeft,
+          ]}
+        >
+          {!isMe && !isSystem && (
+            <Text style={
+              isAndroidTV
+                ? [styles.senderName, { color: getStyleColor(styles.senderName) }]
+                : styles.senderName
+            }>
+              {item.sender}
             </Text>
+          )}
+          <Text
+            style={
+              isSystem
+                ? isAndroidTV
+                  ? [styles.systemText, { color: getStyleColor(styles.systemText) }]
+                  : styles.systemText
+                : isAndroidTV
+                  ? [styles.messageText, { color: getStyleColor(styles.messageText) }]
+                  : styles.messageText
+            }
+          >
+            {item.text}
+          </Text>
+          {/* seek prompts for others */}
+          {item.seekPrompt && item.seekPrompt.username !== username && (
+            <View style={{ flexDirection: 'row', marginTop: 8 }}>
+              <TouchableOpacity
+                style={{ marginRight: 10, backgroundColor: '#2e7d32', padding: 6, borderRadius: 4 }}
+                onPress={() => onSeekRequest && onSeekRequest(item.seekPrompt.to)}
+              >
+                <Text style={{ color: '#fff' }}>OK</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ backgroundColor: '#b71c1c', padding: 6, borderRadius: 4 }}
+                onPress={() => { }}
+              >
+                <Text style={{ color: '#fff' }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  // android tv -> view
+  const Container = isAndroidTV ? View : KeyboardAvoidingView;
+  const containerProps = isAndroidTV
+    ? { style: styles.chatContainer }
+    : Platform.OS === 'ios'
+      ? { style: styles.chatContainer, behavior: 'padding' as 'padding' }
+      : { style: styles.chatContainer };
+
+  const renderToggle = () => (
+    <View style={styles.toggleContainer}>
+      <TouchableOpacity
+        style={[styles.toggleButton, view === 'chat' && styles.toggleButtonActive]}
+        onPress={() => setView('chat')}
+      >
+        <Text style={[styles.toggleButtonText, view === 'chat' && styles.toggleButtonTextActive]}>Chat</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.toggleButton, view === 'video' && styles.toggleButtonActive]}
+        onPress={() => setView('video')}
+      >
+        <Text style={[styles.toggleButtonText, view === 'video' && styles.toggleButtonTextActive]}>Video</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // video (placeholders)
+  const renderVideoPlaceholders = () => (
+    <View style={styles.videoContainer}>
+      <View style={styles.videoBox}>
+        <Image source={{ uri: placeholder1 }} style={styles.videoImage} />
+        <Text style={styles.videoUsername}>{users[0] || 'User 1'}</Text>
+      </View>
+      <View style={styles.videoBox}>
+        <Image source={{ uri: placeholder2 }} style={styles.videoImage} />
+        <Text style={styles.videoUsername}>{users[1] || 'User 2'}</Text>
+      </View>
+    </View>
+  );
+
+  const scrollViewRef = useRef(null);
+
+  // color -> from styles (extract)
+  const getStyleColor = (styleObj) => (styleObj && styleObj.color ? styleObj.color : undefined);
+
+  return (
+    <Container {...containerProps}>
+      {renderToggle()}
+      {view === 'chat' ? (
+        isAndroidTV ? (
+          <View style={{ flex: 1 }}>
+            <ScrollView
+              contentContainerStyle={{ flexGrow: 1}}
+              ref={scrollViewRef}
+              onContentSizeChange={() => scrollViewRef.current.scrollToEnd({ animated: true })}
+            >
+              {messages.length > 0 && messages.map((item, index) => {
+                const isMe = item.sender === username;
+                const isSystem = item.sender === 'System';
+                return (
+                  <View
+                    key={index}
+                    style={[
+                      styles.bubbleContainer,
+                      isMe ? styles.bubbleContainerRight : styles.bubbleContainerLeft,
+                      isSystem && { alignSelf: 'center' },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.bubble,
+                        isMe
+                          ? styles.bubbleRight
+                          : isSystem
+                          ? styles.bubbleSystem
+                          : styles.bubbleLeft,
+                      ]}
+                    >
+                      {!isMe && !isSystem && (
+                        <Text style={
+                          isAndroidTV
+                            ? [styles.senderName, { color: getStyleColor(styles.senderName) }]
+                            : styles.senderName
+                        }>
+                          {item.sender}
+                        </Text>
+                      )}
+                      <Text
+                        style={
+                          isSystem
+                            ? isAndroidTV
+                              ? [styles.systemText, { color: getStyleColor(styles.systemText) }]
+                              : styles.systemText
+                            : isAndroidTV
+                              ? [styles.messageText, { color: getStyleColor(styles.messageText) }]
+                              : styles.messageText
+                        }
+                      >
+                        {item.text}
+                      </Text>
+                        {/* seek prompts for others (android tv) */}                      
+                        {item.seekPrompt && item.seekPrompt.username !== username && (
+                        <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                          <TouchableOpacity
+                            style={{ marginRight: 10, backgroundColor: '#2e7d32', padding: 6, borderRadius: 4 }}
+                            onPress={() => onSeekRequest && onSeekRequest(item.seekPrompt.to)}
+                          >
+                            <Text style={{ color: '#fff' }}>OK</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={{ backgroundColor: '#b71c1c', padding: 6, borderRadius: 4 }}
+                            onPress={() => { }}
+                          >
+                            <Text style={{ color: '#fff' }}>Cancel</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+              {messages.length === 0 && (
+                <Text style={{ color: '#fff', textAlign: 'center', marginTop: 20 }}>
+                  No messages yet. Start the conversation!
+                </Text>
+              )}
+            </ScrollView>
           </View>
-        )}
-        keyExtractor={(_, i) => i.toString()}
-        style={styles.list}
-        contentContainerStyle={{ paddingBottom: 10, flexGrow: 1, justifyContent: 'flex-end' }}
-        inverted
-      />
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={[...messages].reverse()}
+            renderItem={renderItem}
+            keyExtractor={(_, i) => i.toString()}
+            style={styles.list}
+            contentContainerStyle={{ paddingBottom: 10, flexGrow: 1, justifyContent: 'flex-end' }}
+            inverted
+          />
+        )
+      ) : (
+        renderVideoPlaceholders()
+      )}
       <View style={styles.inputContainer}>
         <TextInput
           value={input}
           onChangeText={setInput}
-          placeholder="Type a message"
+          placeholder={isAndroidTV ? 'Type a mess....' : 'Type a message'}
           style={styles.input}
           onSubmitEditing={sendMessage}
           returnKeyType="send"
+          placeholderTextColor={isAndroidTV ? '#555' : undefined}
         />
         <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </Container>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  toggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 10,
+    gap: 10,
+  },
+  toggleButton: {
+    backgroundColor: '#222',
+    paddingVertical: 8,
+    paddingHorizontal: 22,
+    borderRadius: 18,
+    marginHorizontal: 4,
+  },
+  toggleButtonActive: {
+    backgroundColor: '#fff',
+  },
+  toggleButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  toggleButtonTextActive: {
+    color: '#222',
+  },
+  videoContainer: {
     flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    backgroundColor: '#181818',
+    paddingVertical: 30,
+    gap: 24,
+  },
+  videoBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#222',
+    borderRadius: 16,
+    marginHorizontal: 24,
+    marginVertical: 0,
+    paddingVertical: 32,
+    paddingHorizontal: 10,
+  },
+  videoImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 64,
+    marginBottom: 12,
+  },
+  videoUsername: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  chatContainer: {
+    flex: 1,
+    minHeight: 220,
+    borderTopWidth: 1,
+    borderColor: '#303030',
     backgroundColor: '#181818',
   },
   list: {
     flex: 1,
     paddingHorizontal: 10,
     paddingTop: 10,
+  },
+  bubbleContainer: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    alignItems: 'flex-end',
+  },
+  bubbleContainerRight: {
+    justifyContent: 'flex-end',
+  },
+  bubbleContainerLeft: {
+    justifyContent: 'flex-start',
+  },
+  bubble: {
+    maxWidth: '80%',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    marginHorizontal: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  bubbleRight: {
+    backgroundColor: '#F0F0F0',
+    alignSelf: 'flex-end',
+    borderBottomRightRadius: 6,
+  },
+  bubbleLeft: {
+    backgroundColor: '#E4E6EB',
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 6,
+  },
+  bubbleSystem: {
+    backgroundColor: '#333',
+    alignSelf: 'flex-start',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#888',
+    marginTop: 4,
+  },
+  messageText: {
+    color: '#222',
+    fontSize: 16,
+  },
+  systemText: {
+    color: '#fff',
+    fontSize: 15,
+    fontStyle: 'italic',
+  },
+  senderName: {
+    color: '#333',
+    fontWeight: 'bold',
+    fontSize: 13,
+    marginBottom: 2,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -139,20 +478,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  messageContainer: {
-    marginBottom: 8,
-    backgroundColor: '#252525',
-    padding: 10,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    maxWidth: '80%',
-  },
-  messageText: {
-    color: 'white',
-    fontSize: 16,
-  },
-  senderText: {
-    fontWeight: 'bold',
-    color: '#00c1ff',
-  },
 });
+
+// time -> human-readable format
+function formatTime(s) {
+  s = Number(s);
+  const h = String(Math.floor(s / 3600)).padStart(2, '0');
+  const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+  const sec = String(Math.floor(s % 60)).padStart(2, '0');
+  return `${h}:${m}:${sec}`;
+}

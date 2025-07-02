@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, FlatList, Platform } from 'react-native';
-// @ts-ignore
-import { WebView } from 'react-native-webview';
+import VideoPlayer from '../components/VideoPlayer';
 import ChatPanel from '../components/ChatPanel';
 import { disconnectSocket, getSocket } from '../utils/wsClient';
 
@@ -17,6 +16,8 @@ export default function RoomScreen({ route }) {
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState([]);
   const [socket, setSocket] = useState(null);
+  const [videoLogs, setVideoLogs] = useState([]);
+  const webViewRef = useRef(null);
 
 
   useEffect(() => {
@@ -63,28 +64,41 @@ export default function RoomScreen({ route }) {
         setMessages((prevMessages) => [...prevMessages, message]);
       };
 
-      const handleUserJoined = ({ username: joinedUsername }) => {
-        if (Platform.OS === 'android' && Platform.isTV) {
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { sender: 'System', text: `${joinedUsername} has joined the room.` },
-          ]);
-        }
-      };
-
       socket.on('chatMessage', handleChatMessage);
-      socket.on('userJoined', handleUserJoined);
 
       return () => {
         socket.off('chatMessage', handleChatMessage);
-        socket.off('userJoined', handleUserJoined);
       };
     }
   }, [socket, roomCode]);
 
-  // useEffect(() => {
-  //   setMessages([{ sender: 'System', text: 'Test message - should be visible!' }]);
-  // }, []);
+  const handleVideoLog = async (logData) => {
+    console.log('📹 Video log received in RoomScreen:', logData);
+    
+    // update local logs
+    setVideoLogs(prev => [...prev, logData]);
+    
+    // send to backend server
+    try {
+      const response = await fetch(`${API_URL}/api/logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...logData,
+          roomCode,
+          username
+        })
+      });
+      
+      if (response.ok) {
+        console.log('✅ Video log sent to backend successfully');
+      } else {
+        console.error('❌ Failed to send video log to backend:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ Error sending video log to backend:', error);
+    }
+  };
 
 
   const getYouTubeId = (url) => {
@@ -98,44 +112,38 @@ export default function RoomScreen({ route }) {
   const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : null;
   const directLink = !videoId ? currentVideoUrl : null;
 
+  const handleSeekFromChat = (timestamp) => {
+    const js = `
+      (function() {
+        const timeStrToSeconds = t => {
+          const parts = t.split(':').map(Number);
+          if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+          if (parts.length === 2) return parts[0] * 60 + parts[1];
+          return 0;
+        };
+        const timeInSeconds = timeStrToSeconds('${timestamp}');
+        document.querySelectorAll('video').forEach(video => {
+          video.currentTime = timeInSeconds;
+        });
+      })();
+    `;
+    webViewRef.current?.injectJavaScript(js);
+  };
+
   const renderVideo = () => {
     if (loading) {
       return <ActivityIndicator color="#fff" style={{ flex: 1 }} />;
     }
-    if (embedUrl) {
-      return (
-        <WebView
-            source={{ uri: embedUrl }}
-            style={{ flex: 1 }}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            allowsFullscreenVideo
-            userAgent={sessionParam}
-        />
-      );
-    }
-    if (directLink) {
-        return (
-            <WebView
-                source={{ uri: directLink }}
-                style={{ flex: 1 }}
-                startInLoadingState={true}
-                renderLoading={() => <ActivityIndicator color="#fff" style={{...StyleSheet.absoluteFillObject}}/>}
-                onError={(e) => {
-                  console.error("WebView Error: ", e.nativeEvent);
-                  Alert.alert(
-                    "Playback Error",
-                    `This content may be protected or incompatible. Please use the official app if it fails to load. \n\nError: ${e.nativeEvent.description}`
-                  );
-                }}
-                userAgent={sessionParam}
-            />
-        );
-    }
+    
     return (
-        <View style={styles.noVideoContainer}>
-            <Text style={styles.noVideoText}>No video selected. Enjoy the chat!</Text>
-        </View>
+      <VideoPlayer
+        roomCode={roomCode}
+        watchUrl={currentVideoUrl}
+        username={username}
+        sessionParam={sessionParam}
+        onVideoLog={handleVideoLog}
+        onSeekRequest={handleSeekFromChat}
+      />
     );
   };
 
@@ -148,7 +156,7 @@ export default function RoomScreen({ route }) {
         </View>
         {renderVideo()}
       </View>
-      <View style={styles.chatContainer}>
+      {/* <View style={styles.chatContainer}>
         {Platform.OS === 'android' && (
           <View style={{ flex: 1, backgroundColor: '#222' }}>
             <FlatList
@@ -166,8 +174,13 @@ export default function RoomScreen({ route }) {
               }
             />
           </View>
-        )}
-        <ChatPanel roomCode={roomCode} username={username} />
+        )} */}
+      <View style={styles.chatContainer}>
+        <ChatPanel
+          roomCode={roomCode}
+          username={username}
+          onSeekRequest={handleSeekFromChat}
+        />
       </View>
     </View>
   );
