@@ -1,47 +1,59 @@
-# SocialRooms
+# 🎬 SocialRooms
 
-SocialRooms is a cross-platform application designed for Android TV, iOS, and web, allowing users to create shared media-watching experiences. Users can browse movies, create private rooms, and watch content together in sync, with a real-time chat feature to communicate with others in the room.
-
----
-
-## Key Features
-
-- **User Authentication:** Secure user registration and login system with JWT-based authentication.
-- **Movie Discovery:** Browse an extensive list of movies, view details, and watch trailers.
-- **Genre-Based Carousels:** Movies are dynamically organized by genre for easy discovery.
-- **Private Watch Rooms:** Create private rooms with a unique, shareable code to watch content with friends.
-- **Real-Time Chat:** A fully-featured chat panel in each room for real-time communication.
-- **Synced Video Playback:** The video player is synchronized between all users in a room.
-- **Optimized for Android TV:** The UI is designed to be fully navigable with a D-pad, providing a seamless TV experience.
+**SocialRooms** is a cross-platform, full-stack application for synchronized movie watching and real-time chat. Designed for Android TV, iOS, and web, it lets users create private rooms, browse movies, and enjoy content together—no matter where they are.
 
 ---
 
-## Tech Stack
+## 🚀 Features
 
-- **Frontend:** React Native, Expo
+- **User Authentication:** Secure registration and login with JWT.
+- **Movie Discovery:** Browse a rich catalog of movies, genres, and trailers.
+- **Private Watch Rooms:** Create or join rooms with a unique code.
+- **Real-Time Chat:** Chat with friends in each room, with modern bubble UI and system messages.
+- **Synchronized Video Playback:** Watch together in perfect sync, with play, pause, and seek events.
+- **Video Logging & Analytics:** All playback events are logged for analytics and session review.
+- **Seek Sync via Chat:** When someone seeks, others get a prompt to sync instantly.
+- **Android TV Optimized:** Full D-pad navigation, large UI, and TV-specific layouts.
+- **WebView Video Player:** Supports YouTube, Netflix, Prime Video, and more.
+- **Responsive UI:** Works beautifully on TV, mobile, and web.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend:** React Native, Expo, React Navigation
 - **Backend:** Node.js, Express, Socket.IO
 - **Database:** PostgreSQL
-- **Styling:** React Native Stylesheets with platform-specific adjustments.
-- **Navigation:** React Navigation
+- **Styling:** React Native Stylesheets (platform-specific)
+- **Video:** WebView-based universal player with injected logger
+- **Authentication:** JWT (JSON Web Tokens)
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 /backend              # Node.js backend (Express + Socket.IO)
 /src
   /components         # Reusable UI components (VideoPlayer, ChatPanel)
-  /screens            # App screens (Login, Home, Room)
-  /utils              # Utility modules (wsClient)
-/assets               # Static assets like images and fonts
-schema.sql            # SQL schema for the PostgreSQL database
-App.tsx               # Main app entry (navigation setup)
+  /screens            # App screens (Auth, Login, Home, Room)
+  /utils              # Utility modules (wsClient, videoLogger)
+  /assets             # Static assets (images, movie_db.json)
+App.tsx               # Main app entry and navigation setup
+schema.sql            # PostgreSQL schema
 ```
 
 ---
 
-## Getting Started
+## 🏁 Getting Started
+
+### Prerequisites
+
+- Node.js (v18+ recommended)
+- pnpm (or npm/yarn)
+- PostgreSQL
+
+---
 
 ### Prerequisites
 
@@ -56,85 +68,102 @@ git clone https://github.com/yatharthbhatia/streaming-app.git
 cd streaming-app
 ```
 
+---
+
 ### 2. Backend Setup
 
 ```sh
-# Navigate to the backend directory
 cd backend
-
-# Install dependencies
 pnpm install
-
-# Create a .env file and add the following variables
 touch .env
 ```
 
-**`.env` file contents:**
-
+**`.env` file:**
 ```env
-# Connection string for your PostgreSQL database
 PG_CONNECTION_STRING="postgresql://USERNAME:PASSWORD@HOST:PORT/DATABASE_NAME"
-
-# Secret key for signing JWT tokens
 JWT_SECRET="YOUR_SUPER_SECRET_KEY"
 ```
 
-**Set up the database:**
+**Database Setup:**
+1. Connect to PostgreSQL and create a new database.
+2. Run `schema.sql` from the project root to create tables.
 
-1.  Connect to your PostgreSQL instance.
-2.  Create a new database.
-3.  Run the `schema.sql` file located in the root of the project to create the necessary tables.
-
-**Start the backend server:**
-
+**Start the backend:**
 ```sh
-cd backend
 pnpm start
-```
-
-### 3. Frontend Setup
-
-```sh
-# From the root directory, install dependencies
-pnpm install
-
-# Create a .env file in the root directory
-touch .env
-```
-
-**`.env` file contents:**
-
-```env
-# The URL of your running backend server
-EXPO_PUBLIC_SOCKET_URL="http://<YOUR_LOCAL_IP>:3000"
-```
-
-Replace `<YOUR_LOCAL_IP>` with your computer's local IP address (e.g., `192.168.1.13`).
-
-**Start the frontend app:**
-
-```sh
-# Run on Android, iOS, or web
-pnpm start expo
 ```
 
 ---
 
-## API Endpoints & WebSocket Events
+### 3. Frontend Setup
 
-### Backend API
+```sh
+pnpm install
+touch .env
+```
 
--   `POST /register`: Create a new user account.
--   `POST /login`: Log in a user and receive a JWT token.
--   `POST /room`: Create a new room (requires authentication).
--   `GET /room/:code`: Get details for an existing room.
--   `GET /movies`: Get a list of all movies.
+**`.env` file:**
+```env
+EXPO_PUBLIC_SOCKET_URL="http://<YOUR_LOCAL_IP>:3000"
+```
+Replace `<YOUR_LOCAL_IP>` with your machine's IP (e.g., `192.168.1.13`).
+
+**Start the app:**
+```sh
+pnpm start
+```
+- Use Expo Go, Android/iOS emulator, or run on Android TV.
+
+---
+
+## 🖥️ Main Screens & Components
+
+- **AuthLoadingScreen:** Checks for valid JWT and routes to Login or Main.
+- **LoginScreen:** Register or log in securely.
+- **HomeScreen:** Browse movies, create/join rooms, and see carousels.
+- **RoomScreen:** Watch videos, chat, and sync playback in real time.
+- **VideoPlayer:** Universal WebView-based player with logging and navigation.
+- **ChatPanel:** Modern chat with system messages, seek prompts, and TV support.
+
+---
+
+## 🔌 API & WebSocket Events
+
+### REST API
+
+- `POST /register` — Register a new user
+- `POST /login` — Authenticate and receive JWT
+- `POST /room` — Create a new room (auth required)
+- `GET /room/:code` — Get room details
+- `GET /movies` — List all movies
+- `POST /api/logs` — Log video events
 
 ### WebSocket Events
 
--   `joinRoom`: Join a room with a specific `roomCode`.
--   `chatMessage`: Send or receive a chat message.
--   `videoEvent`: Send or receive video playback events for synchronization.
--   `userJoined`: Broadcasts when a new user joins a room.
+- `joinRoom` — Join a room by code
+- `chatMessage` — Send/receive chat messages
+- `videoLog` — Sync video events (play, pause, seek)
+- `userJoined` — System message when a user joins
+
+---
+
+## 🖼️ Assets
+
+- **Movie Posters & Backdrops:** `/assets/movie_db.json`
+- **App Icons:** `/assets/icon.png` and TV-specific images
+
+---
+
+## 🧩 Extending & Customizing
+
+- **Add More Providers:** Update `videoLogger.ts` and `getServiceFromUrl` for new streaming services.
+- **UI Customization:** Edit styles in `/src/components` and `/src/screens`.
+- **Analytics:** Extend backend `/api/logs` for advanced analytics.
+
+---
+
+## 📝 License
+
+MIT
 
 ---
